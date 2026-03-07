@@ -1,334 +1,324 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-2048 Game - Single File Implementation
-"""
-
+import pygame
 import random
-import os
 import sys
 
-# ANSI color codes for terminal display
-class Colors:
-    RESET = '\033[0m'
-    BOLD = '\033[1m'
-    RED = '\033[91m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    BLUE = '\033[94m'
-    PURPLE = '\033[95m'
-    CYAN = '\033[96m'
-    WHITE = '\033[97m'
-    
-    # Background colors for tiles
-    BG_BLACK = '\033[40m'
-    BG_RED = '\033[41m'
-    BG_GREEN = '\033[42m'
-    BG_YELLOW = '\033[43m'
-    BG_BLUE = '\033[44m'
-    BG_PURPLE = '\033[45m'
-    BG_CYAN = '\033[46m'
-    BG_WHITE = '\033[47m'
+# 初始化pygame
+pygame.init()
+
+# 游戏常量
+GRID_SIZE = 4
+CELL_SIZE = 100
+PADDING = 10
+WINDOW_WIDTH = GRID_SIZE * CELL_SIZE + (GRID_SIZE + 1) * PADDING
+WINDOW_HEIGHT = WINDOW_WIDTH + 80  # 额外空间用于分数显示
+FPS = 60
+
+# 颜色定义
+BACKGROUND_COLOR = (187, 173, 160)
+GRID_COLOR = (205, 193, 180)
+EMPTY_CELL_COLOR = (205, 193, 180)
+TEXT_COLOR = (119, 110, 101)
+SCORE_BG_COLOR = (187, 173, 160)
+SCORE_TEXT_COLOR = (249, 246, 242)
+GAME_OVER_BG = (238, 228, 218, 180)
+GAME_OVER_TEXT = (119, 110, 101)
+
+# 数字颜色映射
+NUMBER_COLORS = {
+    0: (205, 193, 180),
+    2: (238, 228, 218),
+    4: (237, 224, 200),
+    8: (242, 177, 121),
+    16: (245, 149, 99),
+    32: (246, 124, 95),
+    64: (246, 94, 59),
+    128: (237, 207, 114),
+    256: (237, 204, 97),
+    512: (237, 200, 80),
+    1024: (237, 197, 63),
+    2048: (237, 194, 46)
+}
+
+# 数字文本颜色映射
+TEXT_COLORS = {
+    2: (119, 110, 101),
+    4: (119, 110, 101),
+    8: (249, 246, 242),
+    16: (249, 246, 242),
+    32: (249, 246, 242),
+    64: (249, 246, 242),
+    128: (249, 246, 242),
+    256: (249, 246, 242),
+    512: (249, 246, 242),
+    1024: (249, 246, 242),
+    2048: (249, 246, 242)
+}
 
 class Game2048:
-    """Main 2048 game class"""
-    
     def __init__(self):
-        """Initialize the game"""
-        self.grid = [[0 for _ in range(4)] for _ in range(4)]
-        self.score = 0
-        self.game_over = False
-        self.won = False
-        self.initialize_grid()
+        self.screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+        pygame.display.set_caption("2048 Game")
+        self.clock = pygame.time.Clock()
+        self.font = pygame.font.SysFont(None, 48)
+        self.small_font = pygame.font.SysFont(None, 36)
+        self.score_font = pygame.font.SysFont(None, 32)
+        self.reset_game()
     
-    def initialize_grid(self):
-        """Initialize the grid with two random tiles"""
-        # Clear grid
-        self.grid = [[0 for _ in range(4)] for _ in range(4)]
+    def reset_game(self):
+        """重置游戏状态"""
+        self.grid = [[0 for _ in range(GRID_SIZE)] for _ in range(GRID_SIZE)]
         self.score = 0
         self.game_over = False
-        self.won = False
-        
-        # Add two initial tiles
+        # 初始生成两个数字
         self.add_random_tile()
         self.add_random_tile()
     
     def add_random_tile(self):
-        """Add a random tile (2 or 4) to an empty cell"""
-        empty_cells = []
-        for i in range(4):
-            for j in range(4):
-                if self.grid[i][j] == 0:
-                    empty_cells.append((i, j))
-        
+        """在空白位置随机添加一个数字（90%概率为2，10%概率为4）"""
+        empty_cells = [(r, c) for r in range(GRID_SIZE) for c in range(GRID_SIZE) if self.grid[r][c] == 0]
         if empty_cells:
-            i, j = random.choice(empty_cells)
-            # 90% chance for 2, 10% chance for 4
-            self.grid[i][j] = 2 if random.random() < 0.9 else 4
-            return True
-        return False
+            row, col = random.choice(empty_cells)
+            self.grid[row][col] = 2 if random.random() < 0.9 else 4
     
-    def get_tile_color(self, value):
-        """Get color for tile based on its value"""
-        colors = {
-            0: (Colors.WHITE, Colors.BG_BLACK),
-            2: (Colors.WHITE, Colors.BG_BLUE),
-            4: (Colors.WHITE, Colors.BG_CYAN),
-            8: (Colors.WHITE, Colors.BG_GREEN),
-            16: (Colors.WHITE, Colors.BG_YELLOW),
-            32: (Colors.WHITE, Colors.BG_RED),
-            64: (Colors.WHITE, Colors.BG_PURPLE),
-            128: (Colors.BOLD + Colors.YELLOW, Colors.BG_BLUE),
-            256: (Colors.BOLD + Colors.YELLOW, Colors.BG_CYAN),
-            512: (Colors.BOLD + Colors.YELLOW, Colors.BG_GREEN),
-            1024: (Colors.BOLD + Colors.YELLOW, Colors.BG_RED),
-            2048: (Colors.BOLD + Colors.YELLOW, Colors.BG_PURPLE),
-        }
+    def add_random_tile_optimized(self, direction):
+        """优化版：在空白位置随机添加数字，避免在大数正下方或正右方"""
+        empty_cells = [(r, c) for r in range(GRID_SIZE) for c in range(GRID_SIZE) if self.grid[r][c] == 0]
         
-        if value > 2048:
-            return (Colors.BOLD + Colors.RED, Colors.BG_WHITE)
+        if not empty_cells:
+            return
         
-        # For values not in dictionary, use the closest lower value
-        for key in sorted(colors.keys(), reverse=True):
-            if value >= key:
-                return colors[key]
+        # 找到当前最大数字的位置
+        max_value = 0
+        max_positions = []
+        for r in range(GRID_SIZE):
+            for c in range(GRID_SIZE):
+                if self.grid[r][c] > max_value:
+                    max_value = self.grid[r][c]
+                    max_positions = [(r, c)]
+                elif self.grid[r][c] == max_value and max_value > 0:
+                    max_positions.append((r, c))
         
-        return colors[0]
-    
-    def display_grid(self):
-        """Display the grid with colors in terminal"""
-        os.system('cls' if os.name == 'nt' else 'clear')
-        
-        print(f"{Colors.BOLD}{Colors.CYAN}=== 2048 GAME ==={Colors.RESET}")
-        print(f"{Colors.GREEN}Score: {self.score}{Colors.RESET}")
-        print(f"{Colors.YELLOW}Controls: W/A/S/D or Arrow Keys{Colors.RESET}")
-        print(f"{Colors.YELLOW}Quit: Q, Restart: R{Colors.RESET}")
-        print()
-        
-        # Display grid
-        print("+" + "-----" * 4 + "+")
-        
-        for i in range(4):
-            print("|", end="")
-            for j in range(4):
-                value = self.grid[i][j]
-                text_color, bg_color = self.get_tile_color(value)
-                
-                if value == 0:
-                    display_value = "     "
-                else:
-                    display_value = f"{value:^5}"
-                
-                print(f"{bg_color}{text_color}{display_value}{Colors.RESET}|", end="")
-            print()
-            print("+" + "-----" * 4 + "+")
-        
-        print()
-        
-        # Game status messages
-        if self.won:
-            print(f"{Colors.BOLD}{Colors.GREEN}🎉 Congratulations! You reached 2048! 🎉{Colors.RESET}")
-            print(f"{Colors.YELLOW}Continue playing or press R to restart.{Colors.RESET}")
-        elif self.game_over:
-            print(f"{Colors.BOLD}{Colors.RED}💀 Game Over! No more moves available. 💀{Colors.RESET}")
-            print(f"{Colors.YELLOW}Press R to restart.{Colors.RESET}")
-    
-    def move_left(self):
-        """Move tiles to the left"""
-        moved = False
-        
-        for i in range(4):
-            # Remove zeros and combine adjacent equal numbers
-            row = [cell for cell in self.grid[i] if cell != 0]
+        # 如果向左或向上移动，尝试避免在大数正下方或正右方生成新数字
+        if direction in ['left', 'up'] and max_positions:
+            # 找出需要避免的位置
+            avoid_positions = []
+            for r, c in max_positions:
+                # 大数的正下方（如果存在）
+                if r + 1 < GRID_SIZE and self.grid[r + 1][c] == 0:
+                    avoid_positions.append((r + 1, c))
+                # 大数的正右方（如果存在）
+                if c + 1 < GRID_SIZE and self.grid[r][c + 1] == 0:
+                    avoid_positions.append((r, c + 1))
             
-            # Combine adjacent equal numbers
-            j = 0
-            while j < len(row) - 1:
-                if row[j] == row[j + 1]:
-                    row[j] *= 2
-                    self.score += row[j]
-                    row.pop(j + 1)
-                    
-                    # Check for win
-                    if row[j] == 2048:
-                        self.won = True
-                j += 1
+            # 从可选位置中移除需要避免的位置
+            safe_cells = [cell for cell in empty_cells if cell not in avoid_positions]
             
-            # Pad with zeros
-            row += [0] * (4 - len(row))
-            
-            # Check if row changed
-            if self.grid[i] != row:
-                moved = True
-                self.grid[i] = row
-        
-        return moved
-    
-    def move_right(self):
-        """Move tiles to the right"""
-        # Reverse each row, move left, then reverse back
-        for i in range(4):
-            self.grid[i].reverse()
-        
-        moved = self.move_left()
-        
-        for i in range(4):
-            self.grid[i].reverse()
-        
-        return moved
-    
-    def move_up(self):
-        """Move tiles upward"""
-        # Transpose grid, move left, then transpose back
-        self.transpose_grid()
-        moved = self.move_left()
-        self.transpose_grid()
-        return moved
-    
-    def move_down(self):
-        """Move tiles downward"""
-        # Transpose grid, move right, then transpose back
-        self.transpose_grid()
-        moved = self.move_right()
-        self.transpose_grid()
-        return moved
-    
-    def transpose_grid(self):
-        """Transpose the grid (swap rows and columns)"""
-        self.grid = [[self.grid[j][i] for j in range(4)] for i in range(4)]
-    
-    def can_move(self):
-        """Check if any moves are possible"""
-        # Check for empty cells
-        for i in range(4):
-            for j in range(4):
-                if self.grid[i][j] == 0:
-                    return True
-        
-        # Check for possible merges horizontally
-        for i in range(4):
-            for j in range(3):
-                if self.grid[i][j] == self.grid[i][j + 1]:
-                    return True
-        
-        # Check for possible merges vertically
-        for i in range(3):
-            for j in range(4):
-                if self.grid[i][j] == self.grid[i + 1][j]:
-                    return True
-        
-        return False
-    
-    def check_game_status(self):
-        """Check if game is won or lost"""
-        # Check for win
-        if not self.won:
-            for i in range(4):
-                for j in range(4):
-                    if self.grid[i][j] == 2048:
-                        self.won = True
-                        return
-        
-        # Check for game over
-        if not self.can_move():
-            self.game_over = True
-    
-    def handle_input(self, key):
-        """Handle user input"""
-        moved = False
-        
-        if key in ['w', 'W', '\x1b[A']:  # Up arrow or W
-            moved = self.move_up()
-        elif key in ['s', 'S', '\x1b[B']:  # Down arrow or S
-            moved = self.move_down()
-        elif key in ['a', 'A', '\x1b[D']:  # Left arrow or A
-            moved = self.move_left()
-        elif key in ['d', 'D', '\x1b[C']:  # Right arrow or D
-            moved = self.move_right()
-        elif key in ['r', 'R']:  # Restart
-            self.initialize_grid()
-            return True
-        elif key in ['q', 'Q']:  # Quit
-            print(f"{Colors.YELLOW}Thanks for playing! Final score: {self.score}{Colors.RESET}")
-            sys.exit(0)
+            # 如果有安全位置，优先选择安全位置
+            if safe_cells:
+                row, col = random.choice(safe_cells)
+            else:
+                # 如果没有安全位置，使用所有空白位置
+                row, col = random.choice(empty_cells)
         else:
+            # 其他方向或没有大数，随机选择
+            row, col = random.choice(empty_cells)
+        
+        self.grid[row][col] = 2 if random.random() < 0.9 else 4
+    
+    def move(self, direction):
+        """移动网格中的数字"""
+        if self.game_over:
             return False
         
-        # If a move was made, add a new tile and check game status
+        moved = False
+        score_added = 0
+        
+        # 根据方向处理移动
+        if direction == 'left':
+            for row in range(GRID_SIZE):
+                # 移除空格
+                non_zero = [cell for cell in self.grid[row] if cell != 0]
+                # 合并相同数字
+                merged = []
+                i = 0
+                while i < len(non_zero):
+                    if i + 1 < len(non_zero) and non_zero[i] == non_zero[i + 1]:
+                        merged.append(non_zero[i] * 2)
+                        score_added += non_zero[i] * 2
+                        i += 2
+                    else:
+                        merged.append(non_zero[i])
+                        i += 1
+                # 填充剩余位置
+                new_row = merged + [0] * (GRID_SIZE - len(merged))
+                if self.grid[row] != new_row:
+                    moved = True
+                self.grid[row] = new_row
+        
+        elif direction == 'right':
+            for row in range(GRID_SIZE):
+                non_zero = [cell for cell in self.grid[row] if cell != 0]
+                merged = []
+                i = len(non_zero) - 1
+                while i >= 0:
+                    if i - 1 >= 0 and non_zero[i] == non_zero[i - 1]:
+                        merged.insert(0, non_zero[i] * 2)
+                        score_added += non_zero[i] * 2
+                        i -= 2
+                    else:
+                        merged.insert(0, non_zero[i])
+                        i -= 1
+                new_row = [0] * (GRID_SIZE - len(merged)) + merged
+                if self.grid[row] != new_row:
+                    moved = True
+                self.grid[row] = new_row
+        
+        elif direction == 'up':
+            for col in range(GRID_SIZE):
+                column = [self.grid[row][col] for row in range(GRID_SIZE)]
+                non_zero = [cell for cell in column if cell != 0]
+                merged = []
+                i = 0
+                while i < len(non_zero):
+                    if i + 1 < len(non_zero) and non_zero[i] == non_zero[i + 1]:
+                        merged.append(non_zero[i] * 2)
+                        score_added += non_zero[i] * 2
+                        i += 2
+                    else:
+                        merged.append(non_zero[i])
+                        i += 1
+                new_column = merged + [0] * (GRID_SIZE - len(merged))
+                for row in range(GRID_SIZE):
+                    if self.grid[row][col] != new_column[row]:
+                        moved = True
+                    self.grid[row][col] = new_column[row]
+        
+        elif direction == 'down':
+            for col in range(GRID_SIZE):
+                column = [self.grid[row][col] for row in range(GRID_SIZE)]
+                non_zero = [cell for cell in column if cell != 0]
+                merged = []
+                i = len(non_zero) - 1
+                while i >= 0:
+                    if i - 1 >= 0 and non_zero[i] == non_zero[i - 1]:
+                        merged.insert(0, non_zero[i] * 2)
+                        score_added += non_zero[i] * 2
+                        i -= 2
+                    else:
+                        merged.insert(0, non_zero[i])
+                        i -= 1
+                new_column = [0] * (GRID_SIZE - len(merged)) + merged
+                for row in range(GRID_SIZE):
+                    if self.grid[row][col] != new_column[row]:
+                        moved = True
+                    self.grid[row][col] = new_column[row]
+        
+        # 如果移动了，添加新数字并更新分数
         if moved:
-            self.add_random_tile()
-            self.check_game_status()
+            self.score += score_added
+            self.add_random_tile_optimized(direction)
+            self.check_game_over()
         
+        return moved
+    
+    def check_game_over(self):
+        """检查游戏是否结束"""
+        # 检查是否有空格
+        for row in range(GRID_SIZE):
+            for col in range(GRID_SIZE):
+                if self.grid[row][col] == 0:
+                    return False
+        
+        # 检查是否有可合并的相邻数字
+        for row in range(GRID_SIZE):
+            for col in range(GRID_SIZE):
+                current = self.grid[row][col]
+                # 检查右侧
+                if col + 1 < GRID_SIZE and self.grid[row][col + 1] == current:
+                    return False
+                # 检查下方
+                if row + 1 < GRID_SIZE and self.grid[row + 1][col] == current:
+                    return False
+        
+        self.game_over = True
         return True
-
-# For Windows compatibility with arrow keys
-if os.name == 'nt':
-    import msvcrt
     
-    def get_key_windows():
-        """Get key input for Windows"""
-        key = msvcrt.getch()
+    def draw(self):
+        """绘制游戏界面"""
+        # 绘制背景
+        self.screen.fill(BACKGROUND_COLOR)
         
-        # Handle arrow keys
-        if key == b'\xe0':
-            next_key = msvcrt.getch()
-            arrow_keys = {
-                b'H': '\x1b[A',  # Up
-                b'P': '\x1b[B',  # Down
-                b'K': '\x1b[D',  # Left
-                b'M': '\x1b[C'   # Right
-            }
-            return arrow_keys.get(next_key, '')
+        # 绘制网格
+        for row in range(GRID_SIZE):
+            for col in range(GRID_SIZE):
+                # 计算单元格位置
+                x = col * CELL_SIZE + (col + 1) * PADDING
+                y = row * CELL_SIZE + (row + 1) * PADDING
+                
+                # 绘制单元格背景
+                cell_value = self.grid[row][col]
+                cell_color = NUMBER_COLORS.get(cell_value, NUMBER_COLORS[0])
+                pygame.draw.rect(self.screen, cell_color, (x, y, CELL_SIZE, CELL_SIZE), border_radius=6)
+                
+                # 绘制数字
+                if cell_value != 0:
+                    text_color = TEXT_COLORS.get(cell_value, TEXT_COLORS[2048])
+                    text = self.font.render(str(cell_value), True, text_color)
+                    text_rect = text.get_rect(center=(x + CELL_SIZE // 2, y + CELL_SIZE // 2))
+                    self.screen.blit(text, text_rect)
         
-        return key.decode('utf-8', errors='ignore')
-    
-    get_key = get_key_windows
-else:
-    # For Unix/Linux/Mac
-    import tty
-    import termios
-    
-    def get_key_unix():
-        """Get key input for Unix/Linux/Mac"""
-        fd = sys.stdin.fileno()
-        old_settings = termios.tcgetattr(fd)
+        # 绘制分数
+        score_bg_rect = pygame.Rect(PADDING, WINDOW_HEIGHT - 70, WINDOW_WIDTH - 2 * PADDING, 60)
+        pygame.draw.rect(self.screen, SCORE_BG_COLOR, score_bg_rect, border_radius=6)
         
-        try:
-            tty.setraw(sys.stdin.fileno())
-            ch = sys.stdin.read(1)
+        score_text = self.score_font.render(f"Score: {self.score}", True, SCORE_TEXT_COLOR)
+        score_rect = score_text.get_rect(center=score_bg_rect.center)
+        self.screen.blit(score_text, score_rect)
+        
+        # 绘制游戏结束提示
+        if self.game_over:
+            overlay = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT - 80), pygame.SRCALPHA)
+            overlay.fill(GAME_OVER_BG)
+            self.screen.blit(overlay, (0, 0))
             
-            # Handle arrow keys (escape sequences)
-            if ch == '\x1b':
-                ch += sys.stdin.read(2)  # Read the next two characters
+            game_over_text = self.font.render("Game Over!", True, GAME_OVER_TEXT)
+            restart_text = self.small_font.render("Press R to restart", True, GAME_OVER_TEXT)
             
-            return ch
-        finally:
-            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-    
-    get_key = get_key_unix
-
-def main():
-    """Main game loop"""
-    game = Game2048()
-    
-    print(f"{Colors.BOLD}{Colors.CYAN}Welcome to 2048!{Colors.RESET}")
-    print(f"{Colors.YELLOW}Use W/A/S/D or Arrow Keys to move tiles.{Colors.RESET}")
-    print(f"{Colors.YELLOW}Press Q to quit, R to restart.{Colors.RESET}")
-    print(f"{Colors.GREEN}Press any key to start...{Colors.RESET}")
-    get_key()  # Wait for any key
-    
-    while True:
-        game.display_grid()
+            game_over_rect = game_over_text.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2 - 100))
+            restart_rect = restart_text.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2 - 40))
+            
+            self.screen.blit(game_over_text, game_over_rect)
+            self.screen.blit(restart_text, restart_rect)
         
-        # Get user input
-        key = get_key()
-        game.handle_input(key)
+        pygame.display.flip()
+    
+    def run(self):
+        """运行游戏主循环"""
+        running = True
+        
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_r:
+                        self.reset_game()
+                    elif not self.game_over:
+                        if event.key == pygame.K_LEFT:
+                            self.move('left')
+                        elif event.key == pygame.K_RIGHT:
+                            self.move('right')
+                        elif event.key == pygame.K_UP:
+                            self.move('up')
+                        elif event.key == pygame.K_DOWN:
+                            self.move('down')
+            
+            self.draw()
+            self.clock.tick(FPS)
+        
+        pygame.quit()
+        sys.exit()
 
 if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        print(f"\n{Colors.YELLOW}Game interrupted. Thanks for playing!{Colors.RESET}")
-    except Exception as e:
-        print(f"{Colors.RED}An error occurred: {e}{Colors.RESET}")
-        print(f"{Colors.YELLOW}Make sure your terminal supports ANSI colors.{Colors.RESET}")
+    game = Game2048()
+    game.run()
