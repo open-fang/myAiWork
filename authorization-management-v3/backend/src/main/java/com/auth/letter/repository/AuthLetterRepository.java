@@ -4,6 +4,7 @@ import com.auth.letter.entity.AuthLetter;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,7 +16,7 @@ import java.util.List;
  * Authorization Letter Repository
  */
 @Repository
-public interface AuthLetterRepository extends JpaRepository<AuthLetter, Long> {
+public interface AuthLetterRepository extends JpaRepository<AuthLetter, Long>, JpaSpecificationExecutor<AuthLetter> {
 
     /**
      * Find by status

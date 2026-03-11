@@ -18,9 +18,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import javax.persistence.criteria.Predicate;
+
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 规则参数服务实现
@@ -43,7 +46,7 @@ public class RuleParamServiceImpl implements RuleParamService {
         );
 
         Specification<RuleParam> spec = (root, query, cb) -> {
-            var predicates = cb.conjunction();
+            Predicate predicates = cb.conjunction();
 
             if (StringUtils.hasText(queryDTO.getName())) {
                 predicates = cb.and(predicates,
@@ -67,7 +70,7 @@ public class RuleParamServiceImpl implements RuleParamService {
 
         List<RuleParamListVO> voList = page.getContent().stream()
                 .map(this::convertToVO)
-                .toList();
+                .collect(Collectors.toList());
 
         return PageResult.of(voList, page.getTotalElements(), queryDTO.getPageNum(), queryDTO.getPageSize());
     }

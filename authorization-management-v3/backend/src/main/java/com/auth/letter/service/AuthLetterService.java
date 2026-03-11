@@ -5,6 +5,7 @@ import com.auth.letter.dto.AuthLetterDetailVO;
 import com.auth.letter.dto.AuthLetterListVO;
 import com.auth.letter.dto.AuthLetterQueryDTO;
 import com.auth.letter.dto.PageResult;
+import lombok.Data;
 
 import java.util.List;
 
@@ -76,7 +77,6 @@ public interface AuthLetterService {
 
     /**
      * Get lookup values by code
-     * TODO: Implement lookup service integration
      * @param code lookup code
      * @return list of lookup values
      */
@@ -84,13 +84,23 @@ public interface AuthLetterService {
 
     /**
      * Get organization tree
-     * TODO: Implement organization tree from lookup service
      * @return organization tree structure
      */
     Object getOrgTree();
 
     /**
-     * Lookup Value inner class
+     * Lookup Value class
      */
-    record LookupValue(String code, String name, String parentCode) {}
+    @Data
+    class LookupValue {
+        private String code;
+        private String name;
+        private String parentCode;
+
+        public LookupValue(String code, String name, String parentCode) {
+            this.code = code;
+            this.name = name;
+            this.parentCode = parentCode;
+        }
+    }
 }

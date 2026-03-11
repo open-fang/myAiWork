@@ -1,11 +1,14 @@
 package com.auth.letter.controller;
 
 import com.auth.letter.dto.ApiResponse;
+import lombok.Data;
+import org.springframework.stereotype.Component;
+
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import org.springframework.stereotype.Component;
-
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -25,22 +28,29 @@ public class LookupController {
     @GET
     @Path("/{code}")
     public Response getLookupValues(@PathParam("code") String code) {
-        List<LookupValue> values = switch (code) {
-            case "authTargetLevel", "authPublishLevel" -> List.of(
-                    new LookupValue("ORGANIZATION", "机关"),
-                    new LookupValue("REGIONAL_DEPT", "地区部"),
-                    new LookupValue("REPRESENTATIVE_OFFICE", "代表处"),
-                    new LookupValue("OFFICE", "办事处")
-            );
-            case "applicableRegion" -> List.of(
-                    new LookupValue("EAST", "华东"),
-                    new LookupValue("NORTH", "华北"),
-                    new LookupValue("SOUTH", "华南"),
-                    new LookupValue("WEST", "西部"),
-                    new LookupValue("CENTRAL", "华中")
-            );
-            default -> List.of();
-        };
+        List<LookupValue> values = new ArrayList<>();
+        switch (code) {
+            case "authTargetLevel":
+            case "authPublishLevel":
+                values = Arrays.asList(
+                        new LookupValue("ORGANIZATION", "机关"),
+                        new LookupValue("REGIONAL_DEPT", "地区部"),
+                        new LookupValue("REPRESENTATIVE_OFFICE", "代表处"),
+                        new LookupValue("OFFICE", "办事处")
+                );
+                break;
+            case "applicableRegion":
+                values = Arrays.asList(
+                        new LookupValue("EAST", "华东"),
+                        new LookupValue("NORTH", "华北"),
+                        new LookupValue("SOUTH", "华南"),
+                        new LookupValue("WEST", "西部"),
+                        new LookupValue("CENTRAL", "华中")
+                );
+                break;
+            default:
+                values = new ArrayList<>();
+        }
         return Response.ok(ApiResponse.success(values)).build();
     }
 
@@ -50,15 +60,15 @@ public class LookupController {
     @GET
     @Path("/org/tree")
     public Response getOrgTree() {
-        List<OrgTreeNode> tree = List.of(
-                new OrgTreeNode("ORG001", "总部", 0, List.of(
-                        new OrgTreeNode("ORG002", "华东区", 1, List.of(
-                                new OrgTreeNode("ORG003", "上海办事处", 2, List.of()),
-                                new OrgTreeNode("ORG004", "杭州办事处", 2, List.of())
+        List<OrgTreeNode> tree = Arrays.asList(
+                new OrgTreeNode("ORG001", "总部", 0, Arrays.asList(
+                        new OrgTreeNode("ORG002", "华东区", 1, Arrays.asList(
+                                new OrgTreeNode("ORG003", "上海办事处", 2, new ArrayList<>()),
+                                new OrgTreeNode("ORG004", "杭州办事处", 2, new ArrayList<>())
                         )),
-                        new OrgTreeNode("ORG005", "华北区", 1, List.of(
-                                new OrgTreeNode("ORG006", "北京办事处", 2, List.of()),
-                                new OrgTreeNode("ORG007", "天津办事处", 2, List.of())
+                        new OrgTreeNode("ORG005", "华北区", 1, Arrays.asList(
+                                new OrgTreeNode("ORG006", "北京办事处", 2, new ArrayList<>()),
+                                new OrgTreeNode("ORG007", "天津办事处", 2, new ArrayList<>())
                         ))
                 ))
         );
@@ -71,16 +81,16 @@ public class LookupController {
     @GET
     @Path("/industry/tree")
     public Response getIndustryTree() {
-        List<OrgTreeNode> tree = List.of(
-                new OrgTreeNode("IND001", "ICT", 0, List.of(
-                        new OrgTreeNode("IND001_1", "运营商", 1, List.of()),
-                        new OrgTreeNode("IND001_2", "企业", 1, List.of())
+        List<OrgTreeNode> tree = Arrays.asList(
+                new OrgTreeNode("IND001", "ICT", 0, Arrays.asList(
+                        new OrgTreeNode("IND001_1", "运营商", 1, new ArrayList<>()),
+                        new OrgTreeNode("IND001_2", "企业", 1, new ArrayList<>())
                 )),
-                new OrgTreeNode("IND002", "消费者", 0, List.of(
-                        new OrgTreeNode("IND002_1", "手机", 1, List.of()),
-                        new OrgTreeNode("IND002_2", "PC", 1, List.of())
+                new OrgTreeNode("IND002", "消费者", 0, Arrays.asList(
+                        new OrgTreeNode("IND002_1", "手机", 1, new ArrayList<>()),
+                        new OrgTreeNode("IND002_2", "PC", 1, new ArrayList<>())
                 )),
-                new OrgTreeNode("IND003", "云计算", 0, List.of())
+                new OrgTreeNode("IND003", "云计算", 0, new ArrayList<>())
         );
         return Response.ok(ApiResponse.success(tree)).build();
     }
@@ -91,7 +101,7 @@ public class LookupController {
     @GET
     @Path("/business-scenarios")
     public Response getBusinessScenarios() {
-        List<LookupValue> values = List.of(
+        List<LookupValue> values = Arrays.asList(
                 new LookupValue("BS001", "设备销售"),
                 new LookupValue("BS002", "软件销售"),
                 new LookupValue("BS003", "服务销售"),
@@ -106,7 +116,7 @@ public class LookupController {
     @GET
     @Path("/decision-levels")
     public Response getDecisionLevels() {
-        List<LookupValue> values = List.of(
+        List<LookupValue> values = Arrays.asList(
                 new LookupValue("ORGANIZATION", "机关"),
                 new LookupValue("REGIONAL_DEPT", "地区部"),
                 new LookupValue("REPRESENTATIVE_OFFICE", "代表处"),
@@ -121,7 +131,7 @@ public class LookupController {
     @GET
     @Path("/business-objects")
     public Response getBusinessObjects() {
-        List<LookupValue> values = List.of(
+        List<LookupValue> values = Arrays.asList(
                 new LookupValue("CONTRACT", "合同"),
                 new LookupValue("ORDER", "订单"),
                 new LookupValue("PROJECT", "项目"),
@@ -137,7 +147,7 @@ public class LookupController {
     @GET
     @Path("/rule-fields")
     public Response getRuleFields() {
-        List<LookupValue> values = List.of(
+        List<LookupValue> values = Arrays.asList(
                 new LookupValue("amount", "金额"),
                 new LookupValue("quantity", "数量"),
                 new LookupValue("customer_level", "客户等级"),
@@ -149,10 +159,32 @@ public class LookupController {
     /**
      * Lookup值记录
      */
-    public record LookupValue(String code, String name) {}
+    @Data
+    public static class LookupValue {
+        private String code;
+        private String name;
+
+        public LookupValue(String code, String name) {
+            this.code = code;
+            this.name = name;
+        }
+    }
 
     /**
      * 树节点记录
      */
-    public record OrgTreeNode(String code, String name, int level, List<OrgTreeNode> children) {}
+    @Data
+    public static class OrgTreeNode {
+        private String code;
+        private String name;
+        private int level;
+        private List<OrgTreeNode> children;
+
+        public OrgTreeNode(String code, String name, int level, List<OrgTreeNode> children) {
+            this.code = code;
+            this.name = name;
+            this.level = level;
+            this.children = children;
+        }
+    }
 }

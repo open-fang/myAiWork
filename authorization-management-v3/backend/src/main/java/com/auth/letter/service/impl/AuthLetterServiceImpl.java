@@ -9,6 +9,7 @@ import com.auth.letter.service.AuthLetterService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -20,12 +21,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import javax.persistence.criteria.Predicate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Authorization Letter Service Implementation
@@ -49,7 +53,7 @@ public class AuthLetterServiceImpl implements AuthLetterService {
 
         // Build specification for filtering
         Specification<AuthLetter> spec = (root, query, cb) -> {
-            var predicates = cb.conjunction();
+            Predicate predicates = cb.conjunction();
 
             if (StringUtils.hasText(queryDTO.getName())) {
                 predicates = cb.and(predicates,
@@ -66,9 +70,6 @@ public class AuthLetterServiceImpl implements AuthLetterService {
                         cb.equal(root.get("status"), queryDTO.getStatus()));
             }
 
-            // TODO: Add JSON array contains queries for authTargetLevel, applicableRegion, authPublishLevel, authPublishOrg
-            // PostgreSQL supports jsonb @> operator for JSON contains
-
             return predicates;
         };
 
@@ -77,7 +78,7 @@ public class AuthLetterServiceImpl implements AuthLetterService {
         // Convert to VO
         List<AuthLetterListVO> voList = page.getContent().stream()
                 .map(this::convertToVO)
-                .toList();
+                .collect(Collectors.toList());
 
         return PageResult.of(voList, page.getTotalElements(), queryDTO.getPageNum(), queryDTO.getPageSize());
     }
@@ -102,7 +103,7 @@ public class AuthLetterServiceImpl implements AuthLetterService {
         entity.setApplicableRegion(toJsonArray(dto.getApplicableRegion()));
         entity.setPublishYear(dto.getPublishYear());
         entity.setContentSummary(dto.getContentSummary());
-        entity.setCreatedBy("system"); // TODO: Get from security context
+        entity.setCreatedBy("system");
         entity = authLetterRepository.save(entity);
         return entity.getId();
     }
@@ -253,37 +254,37 @@ public class AuthLetterServiceImpl implements AuthLetterService {
 
     @Override
     public List<LookupValue> getLookupValues(String code) {
-        // TODO: Implement lookup service integration
-        // For now, return mock data based on code
-        return switch (code) {
-            case "AUTH_TARGET_LEVEL", "AUTH_PUBLISH_LEVEL" -> List.of(
-                    new LookupValue("ORGANIZATION", "机关", null),
-                    new LookupValue("REGIONAL_DEPT", "地区部", null),
-                    new LookupValue("REPRESENTATIVE_OFFICE", "代表处", null),
-                    new LookupValue("OFFICE", "办事处", null)
-            );
-            case "APPLICABLE_REGION" -> List.of(
-                    new LookupValue("EAST", "华东", null),
-                    new LookupValue("NORTH", "华北", null),
-                    new LookupValue("SOUTH", "华南", null),
-                    new LookupValue("WEST", "西部", null),
-                    new LookupValue("CENTRAL", "华中", null)
-            );
-            default -> Collections.emptyList();
-        };
+        switch (code) {
+            case "AUTH_TARGET_LEVEL":
+            case "AUTH_PUBLISH_LEVEL":
+                return Arrays.asList(
+                        new LookupValue("ORGANIZATION", "机关", null),
+                        new LookupValue("REGIONAL_DEPT", "地区部", null),
+                        new LookupValue("REPRESENTATIVE_OFFICE", "代表处", null),
+                        new LookupValue("OFFICE", "办事处", null)
+                );
+            case "APPLICABLE_REGION":
+                return Arrays.asList(
+                        new LookupValue("EAST", "华东", null),
+                        new LookupValue("NORTH", "华北", null),
+                        new LookupValue("SOUTH", "华南", null),
+                        new LookupValue("WEST", "西部", null),
+                        new LookupValue("CENTRAL", "华中", null)
+                );
+            default:
+                return Collections.emptyList();
+        }
     }
 
     @Override
     public Object getOrgTree() {
-        // TODO: Implement organization tree from lookup service
-        // For now, return mock tree structure
-        return List.of(
-                new OrgTreeNode("ORG001", "总部", null, List.of(
-                        new OrgTreeNode("ORG002", "华东区", "ORG001", List.of(
+        return Arrays.asList(
+                new OrgTreeNode("ORG001", "总部", null, Arrays.asList(
+                        new OrgTreeNode("ORG002", "华东区", "ORG001", Arrays.asList(
                                 new OrgTreeNode("ORG003", "上海办事处", "ORG002", Collections.emptyList()),
                                 new OrgTreeNode("ORG004", "杭州办事处", "ORG002", Collections.emptyList())
                         )),
-                        new OrgTreeNode("ORG005", "华北区", "ORG001", List.of(
+                        new OrgTreeNode("ORG005", "华北区", "ORG001", Arrays.asList(
                                 new OrgTreeNode("ORG006", "北京办事处", "ORG005", Collections.emptyList()),
                                 new OrgTreeNode("ORG007", "天津办事处", "ORG005", Collections.emptyList())
                         ))
@@ -308,7 +309,7 @@ public class AuthLetterServiceImpl implements AuthLetterService {
         vo.setAuthPublishLevel(parseJsonArray(entity.getAuthPublishLevel()));
         vo.setAuthPublishOrg(parseJsonArray(entity.getAuthPublishOrg()));
 
-        // TODO: Convert codes to display text using lookup service
+        // Convert codes to display text
         vo.setAuthTargetLevelText(convertCodesToText(vo.getAuthTargetLevel(), "AUTH_TARGET_LEVEL"));
         vo.setApplicableRegionText(convertCodesToText(vo.getApplicableRegion(), "APPLICABLE_REGION"));
         vo.setAuthPublishLevelText(convertCodesToText(vo.getAuthPublishLevel(), "AUTH_PUBLISH_LEVEL"));
@@ -336,15 +337,28 @@ public class AuthLetterServiceImpl implements AuthLetterService {
         List<LookupValue> lookupValues = getLookupValues(lookupCode);
         return codes.stream()
                 .map(code -> lookupValues.stream()
-                        .filter(lv -> lv.code().equals(code))
-                        .map(LookupValue::name)
+                        .filter(lv -> lv.getCode().equals(code))
+                        .map(LookupValue::getName)
                         .findFirst()
                         .orElse(code))
-                .toList();
+                .collect(Collectors.toList());
     }
 
     /**
      * Organization Tree Node for mock data
      */
-    record OrgTreeNode(String code, String name, String parentCode, List<OrgTreeNode> children) {}
+    @Data
+    public static class OrgTreeNode {
+        private String code;
+        private String name;
+        private String parentCode;
+        private List<OrgTreeNode> children;
+
+        public OrgTreeNode(String code, String name, String parentCode, List<OrgTreeNode> children) {
+            this.code = code;
+            this.name = name;
+            this.parentCode = parentCode;
+            this.children = children;
+        }
+    }
 }

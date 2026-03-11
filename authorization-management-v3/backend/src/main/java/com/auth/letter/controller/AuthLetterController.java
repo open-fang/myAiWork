@@ -72,7 +72,7 @@ public class AuthLetterController {
      */
     @POST
     public Response create(AuthLetterDetailDTO dto) {
-        if (dto.getName() == null || dto.getName().isBlank()) {
+        if (dto.getName() == null || dto.getName().trim().isEmpty()) {
             return Response.ok(ApiResponse.error(400, "授权书名称不能为空")).build();
         }
 
@@ -86,7 +86,7 @@ public class AuthLetterController {
     @PUT
     @Path("/{id}")
     public Response update(@PathParam("id") Long id, AuthLetterDetailDTO dto) {
-        if (dto.getName() == null || dto.getName().isBlank()) {
+        if (dto.getName() == null || dto.getName().trim().isEmpty()) {
             return Response.ok(ApiResponse.error(400, "授权书名称不能为空")).build();
         }
 

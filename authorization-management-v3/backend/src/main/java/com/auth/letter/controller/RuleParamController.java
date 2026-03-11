@@ -64,16 +64,16 @@ public class RuleParamController {
     @POST
     public Response create(RuleParamDTO dto) {
         // 参数校验
-        if (dto.getName() == null || dto.getName().isBlank()) {
+        if (dto.getName() == null || dto.getName().trim().isEmpty()) {
             return Response.ok(ApiResponse.error(400, "名称不能为空")).build();
         }
-        if (dto.getNameEn() == null || dto.getNameEn().isBlank()) {
+        if (dto.getNameEn() == null || dto.getNameEn().trim().isEmpty()) {
             return Response.ok(ApiResponse.error(400, "名称英文不能为空")).build();
         }
-        if (dto.getStatus() == null || dto.getStatus().isBlank()) {
+        if (dto.getStatus() == null || dto.getStatus().trim().isEmpty()) {
             return Response.ok(ApiResponse.error(400, "状态不能为空")).build();
         }
-        if (dto.getDataType() == null || dto.getDataType().isBlank()) {
+        if (dto.getDataType() == null || dto.getDataType().trim().isEmpty()) {
             return Response.ok(ApiResponse.error(400, "数据类型不能为空")).build();
         }
 
@@ -88,10 +88,10 @@ public class RuleParamController {
     @Path("/{id}")
     public Response update(@PathParam("id") Long id, RuleParamDTO dto) {
         // 参数校验
-        if (dto.getName() == null || dto.getName().isBlank()) {
+        if (dto.getName() == null || dto.getName().trim().isEmpty()) {
             return Response.ok(ApiResponse.error(400, "名称不能为空")).build();
         }
-        if (dto.getNameEn() == null || dto.getNameEn().isBlank()) {
+        if (dto.getNameEn() == null || dto.getNameEn().trim().isEmpty()) {
             return Response.ok(ApiResponse.error(400, "名称英文不能为空")).build();
         }
 
