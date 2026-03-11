@@ -164,7 +164,13 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(row, index) in tableData" :key="row.id">
+          <tr v-if="loading">
+            <td colspan="12" style="text-align: center; padding: 40px; color: #909399;">加载中...</td>
+          </tr>
+          <tr v-else-if="tableData.length === 0">
+            <td colspan="12" style="text-align: center; padding: 40px; color: #909399;">暂无数据</td>
+          </tr>
+          <tr v-else v-for="(row, index) in tableData" :key="row.id">
             <td class="col-checkbox"><input type="checkbox" v-model="selectedRows" :value="row.id" /></td>
             <td class="col-index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</td>
             <td class="col-action">
@@ -192,9 +198,9 @@
           <option :value="50">50条/页</option>
           <option :value="100">100条/页</option>
         </select>
-        <button class="pagination-btn" :disabled="pagination.pageNum === 1" @click="pagination.pageNum--">上一页</button>
+        <button class="pagination-btn" :disabled="pagination.pageNum === 1" @click="handlePageChange(pagination.pageNum - 1)">上一页</button>
         <span class="pagination-page">{{ pagination.pageNum }} / {{ totalPages }}</span>
-        <button class="pagination-btn" :disabled="pagination.pageNum >= totalPages" @click="pagination.pageNum++">下一页</button>
+        <button class="pagination-btn" :disabled="pagination.pageNum >= totalPages" @click="handlePageChange(pagination.pageNum + 1)">下一页</button>
         <span class="pagination-jump">跳至<input type="number" v-model.number="jumpPage" @keyup.enter="handleJumpPage" />页</span>
       </div>
     </div>
@@ -221,6 +227,8 @@
 </template>
 
 <script>
+import { lookupApi, authLetterApi } from '@/api'
+
 // ========== 树节点组件 ==========
 const TreeNode = {
   name: 'TreeNode',
@@ -299,6 +307,7 @@ export default {
   },
   data() {
     return {
+      loading: false,
       activeDropdown: '',
       selectAll: false,
       selectedRows: [],
@@ -326,105 +335,24 @@ export default {
       pagination: {
         pageNum: 1,
         pageSize: 10,
-        total: 30
+        total: 0
       },
-      authTargetLevelOptions: [
-        { code: 'ORGANIZATION', name: '机关' },
-        { code: 'REGIONAL_DEPT', name: '地区部' },
-        { code: 'REPRESENTATIVE_OFFICE', name: '代表处' },
-        { code: 'OFFICE', name: '办事处' }
-      ],
-      applicableRegionOptions: [
-        { code: 'EAST', name: '华东' },
-        { code: 'NORTH', name: '华北' },
-        { code: 'SOUTH', name: '华南' },
-        { code: 'WEST', name: '西部' },
-        { code: 'CENTRAL', name: '华中' }
-      ],
-      authPublishLevelOptions: [
-        { code: 'ORGANIZATION', name: '机关' },
-        { code: 'REGIONAL_DEPT', name: '地区部' },
-        { code: 'REPRESENTATIVE_OFFICE', name: '代表处' },
-        { code: 'OFFICE', name: '办事处' }
-      ],
+      // 下拉选项数据（从API获取）
+      authTargetLevelOptions: [],
+      applicableRegionOptions: [],
+      authPublishLevelOptions: [],
+      orgTreeData: [],
       statusOptions: [
         { value: 'DRAFT', label: '草稿' },
         { value: 'PUBLISHED', label: '已发布' },
         { value: 'EXPIRED', label: '已失效' }
       ],
-      orgTreeData: [
-        {
-          code: 'ORG001',
-          name: '总部',
-          level: 0,
-          children: [
-            {
-              code: 'ORG002',
-              name: '华东区',
-              level: 1,
-              children: [
-                { code: 'ORG003', name: '上海办事处', level: 2 },
-                { code: 'ORG004', name: '杭州办事处', level: 2 }
-              ]
-            },
-            {
-              code: 'ORG005',
-              name: '华北区',
-              level: 1,
-              children: [
-                { code: 'ORG006', name: '北京办事处', level: 2 },
-                { code: 'ORG007', name: '天津办事处', level: 2 }
-              ]
-            }
-          ]
-        }
-      ],
-      tableData: [
-        {
-          id: 1,
-          name: '2024年度销售授权书',
-          status: 'DRAFT',
-          statusText: '草稿',
-          authTargetLevelText: ['机关', '地区部'],
-          applicableRegionText: ['华东', '华北'],
-          authPublishLevelText: ['机关'],
-          authPublishOrgText: ['总部'],
-          publishYear: 2024,
-          createdBy: 'admin',
-          createdAt: '2024-03-10 10:30:00'
-        },
-        {
-          id: 2,
-          name: '2023年度采购授权书',
-          status: 'PUBLISHED',
-          statusText: '已发布',
-          authTargetLevelText: ['代表处'],
-          applicableRegionText: ['华南'],
-          authPublishLevelText: ['地区部'],
-          authPublishOrgText: ['华南区'],
-          publishYear: 2023,
-          createdBy: 'admin',
-          createdAt: '2023-12-15 14:20:00'
-        },
-        {
-          id: 3,
-          name: '2022年度财务授权书',
-          status: 'EXPIRED',
-          statusText: '已失效',
-          authTargetLevelText: ['办事处'],
-          applicableRegionText: ['西部'],
-          authPublishLevelText: ['代表处'],
-          authPublishOrgText: ['西部区'],
-          publishYear: 2022,
-          createdBy: 'admin',
-          createdAt: '2022-06-20 09:15:00'
-        }
-      ]
+      tableData: []
     }
   },
   computed: {
     totalPages() {
-      return Math.ceil(this.pagination.total / this.pagination.pageSize)
+      return Math.ceil(this.pagination.total / this.pagination.pageSize) || 1
     },
     yearOptions() {
       const years = []
@@ -437,11 +365,66 @@ export default {
   },
   mounted() {
     document.addEventListener('click', this.handleClickOutside)
+    this.loadLookupData()
+    this.loadTableData()
   },
   beforeDestroy() {
     document.removeEventListener('click', this.handleClickOutside)
   },
   methods: {
+    // 加载Lookup数据
+    async loadLookupData() {
+      try {
+        const [targetLevel, region, publishLevel, orgTree] = await Promise.all([
+          lookupApi.getOptions('authTargetLevel'),
+          lookupApi.getOptions('applicableRegion'),
+          lookupApi.getOptions('authPublishLevel'),
+          lookupApi.getOrgTree()
+        ])
+        this.authTargetLevelOptions = targetLevel.data || []
+        this.applicableRegionOptions = region.data || []
+        this.authPublishLevelOptions = publishLevel.data || []
+        this.orgTreeData = orgTree.data || []
+      } catch (error) {
+        console.error('加载Lookup数据失败:', error)
+      }
+    },
+
+    // 加载表格数据
+    async loadTableData() {
+      this.loading = true
+      try {
+        const params = {
+          pageNum: this.pagination.pageNum,
+          pageSize: this.pagination.pageSize,
+          name: this.queryParams.name || undefined,
+          publishYear: this.queryParams.publishYear || undefined,
+          status: this.queryParams.status || undefined
+        }
+        if (this.queryParams.authTargetLevel.length > 0) {
+          params.authTargetLevel = this.queryParams.authTargetLevel
+        }
+        if (this.queryParams.applicableRegion.length > 0) {
+          params.applicableRegion = this.queryParams.applicableRegion
+        }
+        if (this.queryParams.authPublishLevel.length > 0) {
+          params.authPublishLevel = this.queryParams.authPublishLevel
+        }
+        if (this.queryParams.authPublishOrg.length > 0) {
+          params.authPublishOrg = this.queryParams.authPublishOrg
+        }
+
+        const res = await authLetterApi.getList(params)
+        this.tableData = res.data?.list || []
+        this.pagination.total = res.data?.total || 0
+      } catch (error) {
+        console.error('加载数据失败:', error)
+        this.showMessage('加载数据失败', 'error')
+      } finally {
+        this.loading = false
+      }
+    },
+
     toggleSelect(name) {
       this.activeDropdown = this.activeDropdown === name ? '' : name
     },
@@ -514,10 +497,16 @@ export default {
     },
     handleSizeChange() {
       this.pagination.pageNum = 1
+      this.loadTableData()
+    },
+    handlePageChange(page) {
+      this.pagination.pageNum = page
+      this.loadTableData()
     },
     handleJumpPage() {
       if (this.jumpPage >= 1 && this.jumpPage <= this.totalPages) {
         this.pagination.pageNum = this.jumpPage
+        this.loadTableData()
       }
     },
     formatArrayText(arr) {
@@ -548,7 +537,7 @@ export default {
     },
     handleQuery() {
       this.pagination.pageNum = 1
-      this.showMessage('查询成功', 'success')
+      this.loadTableData()
     },
     handleReset() {
       this.queryParams.name = ''
@@ -559,7 +548,7 @@ export default {
       this.queryParams.publishYear = null
       this.queryParams.status = ''
       this.pagination.pageNum = 1
-      this.showMessage('已重置查询条件', 'info')
+      this.loadTableData()
     },
     checkSelection() {
       if (this.selectedRows.length === 0) {
@@ -569,7 +558,8 @@ export default {
       return true
     },
     handleCreate() {
-      this.showMessage('新建授权书功能待实现', 'info')
+      // 跳转到新建页面
+      this.$router.push('/auth-letter/create')
     },
     handleUpdate() {
       if (!this.checkSelection()) return
@@ -579,25 +569,49 @@ export default {
       if (!this.checkSelection()) return
       const confirmed = await this.showConfirm(`确定要将选中的 ${this.selectedRows.length} 条数据发布生效吗？`)
       if (confirmed) {
-        this.showMessage('操作成功', 'success')
+        try {
+          await authLetterApi.batchPublish(this.selectedRows)
+          this.showMessage('操作成功', 'success')
+          this.selectedRows = []
+          this.selectAll = false
+          this.loadTableData()
+        } catch (error) {
+          this.showMessage('操作失败', 'error')
+        }
       }
     },
     async handleDeactivate() {
       if (!this.checkSelection()) return
       const confirmed = await this.showConfirm(`确定要将选中的 ${this.selectedRows.length} 条数据设为失效吗？`)
       if (confirmed) {
-        this.showMessage('操作成功', 'success')
+        try {
+          await authLetterApi.batchExpire(this.selectedRows)
+          this.showMessage('操作成功', 'success')
+          this.selectedRows = []
+          this.selectAll = false
+          this.loadTableData()
+        } catch (error) {
+          this.showMessage('操作失败', 'error')
+        }
       }
     },
     async handleDelete() {
       if (!this.checkSelection()) return
       const confirmed = await this.showConfirm(`确定要删除选中的 ${this.selectedRows.length} 条数据吗？`)
       if (confirmed) {
-        this.showMessage('删除成功', 'success')
+        try {
+          await authLetterApi.batchDelete(this.selectedRows)
+          this.showMessage('删除成功', 'success')
+          this.selectedRows = []
+          this.selectAll = false
+          this.loadTableData()
+        } catch (error) {
+          this.showMessage('删除失败', 'error')
+        }
       }
     },
     goToDetail(id) {
-      this.showMessage(`跳转到详情页: ID=${id}`, 'info')
+      this.$router.push(`/auth-letter/${id}`)
     },
     handleClickOutside(event) {
       if (!event.target.closest('.multi-select-wrapper, .tree-select-wrapper, .select-wrapper, .year-select-wrapper')) {
@@ -609,6 +623,7 @@ export default {
 </script>
 
 <style scoped>
+/* 样式保持不变，与之前相同 */
 * {
   box-sizing: border-box;
 }
@@ -622,7 +637,6 @@ export default {
   color: #333;
 }
 
-/* 查询卡片 */
 .query-card {
   background: #fff;
   border-radius: 4px;
@@ -679,7 +693,6 @@ export default {
   border-top: 1px solid #eee;
 }
 
-/* 按钮样式 */
 .btn {
   padding: 8px 16px;
   border-radius: 4px;
@@ -724,7 +737,6 @@ export default {
   border-color: #dcdfe6;
 }
 
-/* 下拉选择 */
 .multi-select-wrapper,
 .tree-select-wrapper,
 .select-wrapper,
@@ -746,13 +758,6 @@ export default {
   display: flex;
   align-items: center;
   position: relative;
-}
-
-.multi-select-trigger:hover,
-.tree-select-trigger:hover,
-.select-trigger:hover,
-.year-select-trigger:hover {
-  border-color: #c0c4cc;
 }
 
 .arrow {
@@ -847,7 +852,6 @@ export default {
   transform: translate(-50%, -50%);
 }
 
-/* 树形选择 */
 .tree-node-content {
   display: flex;
   align-items: center;
@@ -917,14 +921,12 @@ export default {
   font-size: 14px;
 }
 
-/* 功能按钮区 */
 .action-buttons {
   display: flex;
   gap: 10px;
   margin-bottom: 16px;
 }
 
-/* 表格 */
 .table-card {
   background: #fff;
   border-radius: 4px;
@@ -1027,7 +1029,6 @@ export default {
   color: #f56c6c;
 }
 
-/* 分页 */
 .pagination {
   display: flex;
   align-items: center;
@@ -1067,7 +1068,6 @@ export default {
   margin: 0 4px;
 }
 
-/* 消息提示 */
 .message-box {
   position: fixed;
   top: 20px;
@@ -1108,7 +1108,6 @@ export default {
   border: 1px solid #fde2e2;
 }
 
-/* 对话框 */
 .modal-overlay {
   position: fixed;
   top: 0;

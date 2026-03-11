@@ -59,7 +59,13 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(row, index) in tableData" :key="row.id">
+          <tr v-if="loading">
+            <td colspan="10" style="text-align: center; padding: 40px; color: #909399;">加载中...</td>
+          </tr>
+          <tr v-else-if="tableData.length === 0">
+            <td colspan="10" style="text-align: center; padding: 40px; color: #909399;">暂无数据</td>
+          </tr>
+          <tr v-else v-for="(row, index) in tableData" :key="row.id">
             <td class="col-checkbox"><input type="checkbox" v-model="selectedRows" :value="row.id" /></td>
             <td class="col-index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</td>
             <td class="col-action">
@@ -89,9 +95,9 @@
           <option :value="50">50条/页</option>
           <option :value="100">100条/页</option>
         </select>
-        <button class="pagination-btn" :disabled="pagination.pageNum === 1" @click="pagination.pageNum--">上一页</button>
+        <button class="pagination-btn" :disabled="pagination.pageNum === 1" @click="handlePageChange(pagination.pageNum - 1)">上一页</button>
         <span class="pagination-page">{{ pagination.pageNum }} / {{ totalPages }}</span>
-        <button class="pagination-btn" :disabled="pagination.pageNum >= totalPages" @click="pagination.pageNum++">下一页</button>
+        <button class="pagination-btn" :disabled="pagination.pageNum >= totalPages" @click="handlePageChange(pagination.pageNum + 1)">下一页</button>
         <span class="pagination-jump">跳至<input type="number" v-model.number="jumpPage" @keyup.enter="handleJumpPage" />页</span>
       </div>
     </div>
@@ -179,7 +185,7 @@
         </div>
         <div class="modal-footer">
           <button class="btn btn-default" @click="closeDialog">取消</button>
-          <button class="btn btn-primary" @click="handleSave">确定</button>
+          <button class="btn btn-primary" @click="handleSave" :disabled="saving">{{ saving ? '保存中...' : '确定' }}</button>
         </div>
       </div>
     </div>
@@ -203,10 +209,14 @@
 </template>
 
 <script>
+import { lookupApi, ruleParamApi } from '@/api'
+
 export default {
   name: 'RuleParamConfig',
   data() {
     return {
+      loading: false,
+      saving: false,
       activeDropdown: '',
       selectAll: false,
       selectedRows: [],
@@ -230,32 +240,20 @@ export default {
       pagination: {
         pageNum: 1,
         pageSize: 10,
-        total: 20
+        total: 0
       },
       statusOptions: [
         { value: 'ACTIVE', label: '生效' },
         { value: 'INACTIVE', label: '失效' }
       ],
-      businessObjectOptions: [
-        { value: 'CONTRACT', label: '合同' },
-        { value: 'ORDER', label: '订单' },
-        { value: 'PROJECT', label: '项目' },
-        { value: 'CUSTOMER', label: '客户' },
-        { value: 'PRODUCT', label: '产品' }
-      ],
+      businessObjectOptions: [],
       dataTypeOptions: [
         { value: 'TEXT', label: '文本' },
         { value: 'NUMBER', label: '数值' },
         { value: 'COMPARE_FIELD', label: '比对字段' },
         { value: 'RATIO', label: '比率' }
       ],
-      tableData: [
-        { id: 1, name: '合同金额', nameEn: 'contractAmount', status: 'ACTIVE', createdBy: 'admin', createdAt: '2024-03-10 10:30:00', updatedBy: '-', updatedAt: '-' },
-        { id: 2, name: '订单数量', nameEn: 'orderQuantity', status: 'ACTIVE', createdBy: 'admin', createdAt: '2024-03-10 11:00:00', updatedBy: 'admin', updatedAt: '2024-03-11 09:00:00' },
-        { id: 3, name: '客户等级', nameEn: 'customerLevel', status: 'INACTIVE', createdBy: 'admin', createdAt: '2024-03-09 14:20:00', updatedBy: '-', updatedAt: '-' },
-        { id: 4, name: '产品类型', nameEn: 'productType', status: 'ACTIVE', createdBy: 'admin', createdAt: '2024-03-08 16:45:00', updatedBy: '-', updatedAt: '-' },
-        { id: 5, name: '审批金额', nameEn: 'approvalAmount', status: 'ACTIVE', createdBy: 'admin', createdAt: '2024-03-07 09:15:00', updatedBy: 'admin', updatedAt: '2024-03-10 10:00:00' }
-      ],
+      tableData: [],
       dialogVisible: false,
       editingRow: null,
       formData: {
@@ -271,16 +269,49 @@ export default {
   },
   computed: {
     totalPages() {
-      return Math.ceil(this.pagination.total / this.pagination.pageSize)
+      return Math.ceil(this.pagination.total / this.pagination.pageSize) || 1
     }
   },
   mounted() {
     document.addEventListener('click', this.handleClickOutside)
+    this.loadLookupData()
+    this.loadTableData()
   },
   beforeDestroy() {
     document.removeEventListener('click', this.handleClickOutside)
   },
   methods: {
+    async loadLookupData() {
+      try {
+        const res = await lookupApi.getBusinessObjects()
+        this.businessObjectOptions = res.data || []
+      } catch (error) {
+        console.error('加载Lookup数据失败:', error)
+      }
+    },
+
+    async loadTableData() {
+      this.loading = true
+      try {
+        const params = {
+          pageNum: this.pagination.pageNum,
+          pageSize: this.pagination.pageSize,
+          name: this.queryParams.name || undefined,
+          nameEn: this.queryParams.nameEn || undefined,
+          status: this.queryParams.status || undefined
+        }
+
+        const res = await ruleParamApi.getList(params)
+        this.tableData = res.data?.list || []
+        this.pagination.total = res.data?.total || 0
+      } catch (error) {
+        console.error('加载数据失败:', error)
+        this.showMessage('加载数据失败', 'error')
+      } finally {
+        this.loading = false
+      }
+    },
+
     toggleSelect(name) {
       this.activeDropdown = this.activeDropdown === name ? '' : name
     },
@@ -327,15 +358,21 @@ export default {
     },
     handleSizeChange() {
       this.pagination.pageNum = 1
+      this.loadTableData()
+    },
+    handlePageChange(page) {
+      this.pagination.pageNum = page
+      this.loadTableData()
     },
     handleJumpPage() {
       if (this.jumpPage >= 1 && this.jumpPage <= this.totalPages) {
         this.pagination.pageNum = this.jumpPage
+        this.loadTableData()
       }
     },
     handleQuery() {
       this.pagination.pageNum = 1
-      this.showMessage('查询成功', 'success')
+      this.loadTableData()
     },
     checkSelection() {
       if (this.selectedRows.length === 0) {
@@ -348,14 +385,30 @@ export default {
       if (!this.checkSelection()) return
       const confirmed = await this.showConfirm(`确定要将选中的 ${this.selectedRows.length} 条数据设为生效吗？`)
       if (confirmed) {
-        this.showMessage('操作成功', 'success')
+        try {
+          await ruleParamApi.batchActivate(this.selectedRows)
+          this.showMessage('操作成功', 'success')
+          this.selectedRows = []
+          this.selectAll = false
+          this.loadTableData()
+        } catch (error) {
+          this.showMessage('操作失败', 'error')
+        }
       }
     },
     async handleDeactivate() {
       if (!this.checkSelection()) return
       const confirmed = await this.showConfirm(`确定要将选中的 ${this.selectedRows.length} 条数据设为失效吗？`)
       if (confirmed) {
-        this.showMessage('操作成功', 'success')
+        try {
+          await ruleParamApi.batchDeactivate(this.selectedRows)
+          this.showMessage('操作成功', 'success')
+          this.selectedRows = []
+          this.selectAll = false
+          this.loadTableData()
+        } catch (error) {
+          this.showMessage('操作失败', 'error')
+        }
       }
     },
     openDialog(row = null) {
@@ -363,17 +416,15 @@ export default {
       if (row) {
         this.formData.name = row.name
         this.formData.nameEn = row.nameEn
-        this.formData.businessRows = [
-          { businessObject: 'CONTRACT', valueLogic: '合同.金额' }
-        ]
+        this.formData.businessRows = row.businessMappings && row.businessMappings.length > 0
+          ? row.businessMappings.map(m => ({ businessObject: m.businessObject, valueLogic: m.valueLogic }))
+          : [{ businessObject: '', valueLogic: '' }]
         this.formData.isActive = row.status === 'ACTIVE'
-        this.formData.dataType = 'NUMBER'
+        this.formData.dataType = row.dataType || ''
       } else {
         this.formData.name = ''
         this.formData.nameEn = ''
-        this.formData.businessRows = [
-          { businessObject: '', valueLogic: '' }
-        ]
+        this.formData.businessRows = [{ businessObject: '', valueLogic: '' }]
         this.formData.isActive = null
         this.formData.dataType = ''
       }
@@ -383,7 +434,7 @@ export default {
       this.dialogVisible = false
       this.editingRow = null
     },
-    handleSave() {
+    async handleSave() {
       if (!this.formData.name) {
         this.showMessage('请输入名称', 'warning')
         return
@@ -400,8 +451,31 @@ export default {
         this.showMessage('请选择数据类型', 'warning')
         return
       }
-      this.showMessage(this.editingRow ? '编辑成功' : '新建成功', 'success')
-      this.closeDialog()
+
+      this.saving = true
+      try {
+        const data = {
+          name: this.formData.name,
+          nameEn: this.formData.nameEn,
+          status: this.formData.isActive ? 'ACTIVE' : 'INACTIVE',
+          dataType: this.formData.dataType,
+          businessMappings: this.formData.businessRows.filter(r => r.businessObject || r.valueLogic)
+        }
+
+        if (this.editingRow) {
+          await ruleParamApi.update(this.editingRow.id, data)
+        } else {
+          await ruleParamApi.create(data)
+        }
+
+        this.showMessage(this.editingRow ? '编辑成功' : '新建成功', 'success')
+        this.closeDialog()
+        this.loadTableData()
+      } catch (error) {
+        this.showMessage('保存失败', 'error')
+      } finally {
+        this.saving = false
+      }
     },
     showMessage(text, type = 'info') {
       this.message.text = text
@@ -435,6 +509,7 @@ export default {
 </script>
 
 <style scoped>
+/* 样式保持不变 */
 * {
   box-sizing: border-box;
 }
@@ -448,7 +523,6 @@ export default {
   color: #333;
 }
 
-/* 查询卡片 */
 .query-card {
   background: #fff;
   border-radius: 4px;
@@ -505,7 +579,6 @@ export default {
   border-top: 1px solid #eee;
 }
 
-/* 下拉选择 */
 .select-wrapper {
   flex: 1;
   position: relative;
@@ -554,7 +627,6 @@ export default {
   background: #f5f7fa;
 }
 
-/* 按钮样式 */
 .btn {
   padding: 8px 16px;
   border-radius: 4px;
@@ -567,6 +639,11 @@ export default {
 
 .btn:hover {
   opacity: 0.9;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .btn-primary {
@@ -599,14 +676,12 @@ export default {
   border-color: #dcdfe6;
 }
 
-/* 功能按钮区 */
 .action-buttons {
   display: flex;
   gap: 10px;
   margin-bottom: 16px;
 }
 
-/* 表格 */
 .table-card {
   background: #fff;
   border-radius: 4px;
@@ -701,7 +776,6 @@ export default {
   color: #909399;
 }
 
-/* 分页 */
 .pagination {
   display: flex;
   align-items: center;
@@ -741,7 +815,6 @@ export default {
   margin: 0 4px;
 }
 
-/* 弹窗 */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -801,7 +874,6 @@ export default {
   gap: 10px;
 }
 
-/* 弹窗表单 */
 .form-content {
   display: flex;
   flex-direction: column;
@@ -884,7 +956,6 @@ export default {
   background: #f78989;
 }
 
-/* 消息提示 */
 .message-box {
   position: fixed;
   top: 20px;
