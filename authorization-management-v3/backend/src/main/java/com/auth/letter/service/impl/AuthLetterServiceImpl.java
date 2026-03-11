@@ -1,9 +1,9 @@
 package com.auth.letter.service.impl;
 
-import com.auth.letter.dto.AuthLetterListVO;
-import com.auth.letter.dto.AuthLetterQueryDTO;
-import com.auth.letter.dto.PageResult;
+import com.auth.letter.dto.*;
 import com.auth.letter.entity.AuthLetter;
+import com.auth.letter.entity.Scene;
+import com.auth.letter.enums.AuthLetterStatus;
 import com.auth.letter.repository.AuthLetterRepository;
 import com.auth.letter.service.AuthLetterService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -20,9 +20,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Authorization Letter Service Implementation
@@ -77,6 +80,148 @@ public class AuthLetterServiceImpl implements AuthLetterService {
                 .toList();
 
         return PageResult.of(voList, page.getTotalElements(), queryDTO.getPageNum(), queryDTO.getPageSize());
+    }
+
+    @Override
+    public AuthLetterDetailVO getDetail(Long id) {
+        AuthLetter entity = authLetterRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("授权书不存在"));
+        return convertToDetailVO(entity);
+    }
+
+    @Override
+    @Transactional
+    public Long create(AuthLetterDetailDTO dto) {
+        AuthLetter entity = new AuthLetter();
+        entity.setCode(generateCode());
+        entity.setName(dto.getName());
+        entity.setStatus(AuthLetterStatus.DRAFT);
+        entity.setAuthPublishLevel(toJsonArray(dto.getAuthPublishLevel()));
+        entity.setAuthPublishOrg(toJsonArray(dto.getAuthPublishOrg()));
+        entity.setAuthTargetLevel(toJsonArray(dto.getAuthTargetLevel()));
+        entity.setApplicableRegion(toJsonArray(dto.getApplicableRegion()));
+        entity.setPublishYear(dto.getPublishYear());
+        entity.setContentSummary(dto.getContentSummary());
+        entity.setCreatedBy("system"); // TODO: Get from security context
+        entity = authLetterRepository.save(entity);
+        return entity.getId();
+    }
+
+    @Override
+    @Transactional
+    public void update(Long id, AuthLetterDetailDTO dto) {
+        AuthLetter entity = authLetterRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("授权书不存在"));
+
+        if (entity.getStatus() != AuthLetterStatus.DRAFT) {
+            throw new RuntimeException("只能修改草稿状态的授权书");
+        }
+
+        entity.setName(dto.getName());
+        entity.setAuthPublishLevel(toJsonArray(dto.getAuthPublishLevel()));
+        entity.setAuthPublishOrg(toJsonArray(dto.getAuthPublishOrg()));
+        entity.setAuthTargetLevel(toJsonArray(dto.getAuthTargetLevel()));
+        entity.setApplicableRegion(toJsonArray(dto.getApplicableRegion()));
+        entity.setPublishYear(dto.getPublishYear());
+        entity.setContentSummary(dto.getContentSummary());
+        authLetterRepository.save(entity);
+    }
+
+    @Override
+    @Transactional
+    public void delete(Long id) {
+        AuthLetter entity = authLetterRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("授权书不存在"));
+
+        if (entity.getStatus() != AuthLetterStatus.DRAFT) {
+            throw new RuntimeException("只能删除草稿状态的授权书");
+        }
+
+        authLetterRepository.deleteById(id);
+    }
+
+    @Override
+    @Transactional
+    public void publish(Long id) {
+        AuthLetter entity = authLetterRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("授权书不存在"));
+
+        if (entity.getStatus() != AuthLetterStatus.DRAFT) {
+            throw new RuntimeException("只能发布草稿状态的授权书");
+        }
+
+        entity.setStatus(AuthLetterStatus.PUBLISHED);
+        entity.setPublishedAt(LocalDateTime.now());
+        authLetterRepository.save(entity);
+    }
+
+    private String generateCode() {
+        return "AUTH" + System.currentTimeMillis() + UUID.randomUUID().toString().substring(0, 4).toUpperCase();
+    }
+
+    private String toJsonArray(List<String> list) {
+        if (list == null || list.isEmpty()) {
+            return null;
+        }
+        try {
+            return objectMapper.writeValueAsString(list);
+        } catch (JsonProcessingException e) {
+            log.warn("Failed to convert list to JSON array", e);
+            return null;
+        }
+    }
+
+    private AuthLetterDetailVO convertToDetailVO(AuthLetter entity) {
+        AuthLetterDetailVO vo = new AuthLetterDetailVO();
+        vo.setId(entity.getId());
+        vo.setCode(entity.getCode());
+        vo.setName(entity.getName());
+        vo.setStatus(entity.getStatus().name());
+        vo.setStatusText(entity.getStatus().getDescription());
+        vo.setAuthPublishLevel(parseJsonArray(entity.getAuthPublishLevel()));
+        vo.setAuthPublishLevelText(convertCodesToText(vo.getAuthPublishLevel(), "AUTH_PUBLISH_LEVEL"));
+        vo.setAuthPublishOrg(parseJsonArray(entity.getAuthPublishOrg()));
+        vo.setAuthPublishOrgText(convertCodesToText(vo.getAuthPublishOrg(), "AUTH_PUBLISH_ORG"));
+        vo.setAuthTargetLevel(parseJsonArray(entity.getAuthTargetLevel()));
+        vo.setAuthTargetLevelText(convertCodesToText(vo.getAuthTargetLevel(), "AUTH_TARGET_LEVEL"));
+        vo.setApplicableRegion(parseJsonArray(entity.getApplicableRegion()));
+        vo.setApplicableRegionText(convertCodesToText(vo.getApplicableRegion(), "APPLICABLE_REGION"));
+        vo.setPublishYear(entity.getPublishYear());
+        vo.setContentSummary(entity.getContentSummary());
+        vo.setCreatedBy(entity.getCreatedBy());
+        vo.setCreatedAt(formatDateTime(entity.getCreatedAt()));
+        vo.setUpdatedBy(entity.getUpdatedBy());
+        vo.setUpdatedAt(formatDateTime(entity.getUpdatedAt()));
+        vo.setPublishedAt(formatDateTime(entity.getPublishedAt()));
+
+        // Convert scenes
+        List<SceneVO> scenes = new ArrayList<>();
+        if (entity.getScenes() != null) {
+            for (Scene scene : entity.getScenes()) {
+                scenes.add(convertToSceneVO(scene));
+            }
+        }
+        vo.setScenes(scenes);
+
+        return vo;
+    }
+
+    private SceneVO convertToSceneVO(Scene scene) {
+        SceneVO vo = new SceneVO();
+        vo.setId(scene.getId());
+        vo.setSceneName(scene.getName());
+        vo.setRuleDetail(scene.getDescription());
+        vo.setCreatedBy(scene.getAuthLetter() != null ? scene.getAuthLetter().getCreatedBy() : null);
+        vo.setCreatedAt(formatDateTime(scene.getCreatedAt()));
+        vo.setUpdatedBy(null);
+        vo.setUpdatedAt(formatDateTime(scene.getUpdatedAt()));
+        vo.setConditions(new ArrayList<>());
+        return vo;
+    }
+
+    private String formatDateTime(LocalDateTime dateTime) {
+        if (dateTime == null) return null;
+        return dateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
     }
 
     @Override

@@ -553,6 +553,62 @@ const ConditionItem = {
   `
 }
 
+// ========== API 请求方法 ==========
+const BASE_URL = '/api'
+
+async function request(url, options = {}) {
+  const config = {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers
+    }
+  }
+  if (config.body && typeof config.body === 'object') {
+    config.body = JSON.stringify(config.body)
+  }
+  const response = await fetch(BASE_URL + url, config)
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`)
+  }
+  return response.json()
+}
+
+const api = {
+  // 获取授权书详情
+  getAuthLetterDetail: (id) => request(`/auth-letters/${id}`),
+
+  // 创建授权书
+  createAuthLetter: (data) => request('/auth-letters', { method: 'POST', body: data }),
+
+  // 更新授权书
+  updateAuthLetter: (id, data) => request(`/auth-letters/${id}`, { method: 'PUT', body: data }),
+
+  // 删除授权书
+  deleteAuthLetter: (id) => request(`/auth-letters/${id}`, { method: 'DELETE' }),
+
+  // 发布授权书
+  publishAuthLetter: (id) => request(`/auth-letters/${id}/publish`, { method: 'PUT' }),
+
+  // 获取下拉选项
+  getLookupOptions: (code) => request(`/lookup/${code}`),
+
+  // 获取组织树
+  getOrgTree: () => request('/lookup/org/tree'),
+
+  // 获取产业树
+  getIndustryTree: () => request('/lookup/industry/tree'),
+
+  // 获取业务场景选项
+  getBusinessScenarios: () => request('/lookup/business-scenarios'),
+
+  // 获取决策层级选项
+  getDecisionLevels: () => request('/lookup/decision-levels'),
+
+  // 获取规则字段选项
+  getRuleFields: () => request('/lookup/rule-fields')
+}
+
 export default {
   name: 'AuthLetterDetail',
   components: {
@@ -561,6 +617,9 @@ export default {
   },
   data() {
     return {
+      authLetterId: null,
+      isNew: true,
+      loading: false,
       activeDropdown: '',
       pageStatus: 'DRAFT',
       message: { show: false, type: 'info', text: '' },
@@ -574,64 +633,18 @@ export default {
         publishYear: null,
         contentSummary: ''
       },
-      authPublishLevelOptions: [
-        { code: 'ORGANIZATION', name: '机关' },
-        { code: 'REGIONAL_DEPT', name: '地区部' },
-        { code: 'REPRESENTATIVE_OFFICE', name: '代表处' },
-        { code: 'OFFICE', name: '办事处' }
-      ],
-      authTargetLevelOptions: [
-        { code: 'ORGANIZATION', name: '机关' },
-        { code: 'REGIONAL_DEPT', name: '地区部' },
-        { code: 'REPRESENTATIVE_OFFICE', name: '代表处' },
-        { code: 'OFFICE', name: '办事处' }
-      ],
-      applicableRegionOptions: [
-        { code: 'EAST', name: '华东' },
-        { code: 'NORTH', name: '华北' },
-        { code: 'SOUTH', name: '华南' },
-        { code: 'WEST', name: '西部' },
-        { code: 'CENTRAL', name: '华中' }
-      ],
-      orgTreeData: [
-        {
-          code: 'ORG001',
-          name: '总部',
-          level: 0,
-          children: [
-            {
-              code: 'ORG002',
-              name: '华东区',
-              level: 1,
-              children: [
-                { code: 'ORG003', name: '上海办事处', level: 2 },
-                { code: 'ORG004', name: '杭州办事处', level: 2 }
-              ]
-            },
-            {
-              code: 'ORG005',
-              name: '华北区',
-              level: 1,
-              children: [
-                { code: 'ORG006', name: '北京办事处', level: 2 }
-              ]
-            }
-          ]
-        }
-      ],
+      authPublishLevelOptions: [],
+      authTargetLevelOptions: [],
+      applicableRegionOptions: [],
+      orgTreeData: [],
       selectedAttachments: [],
       attachmentSelectAll: false,
-      attachmentData: [
-        { id: 1, fileName: '授权书原件.pdf', docTypeName: '原件', createdBy: 'admin', createdAt: '2024-03-10 10:30:00', updatedBy: '', updatedAt: '' },
-        { id: 2, fileName: '授权书附件.docx', docTypeName: '附件', createdBy: 'admin', createdAt: '2024-03-10 11:00:00', updatedBy: '-', updatedAt: '-' }
-      ],
-      attachmentPage: { pageNum: 1, pageSize: 10, total: 2 },
+      attachmentData: [],
+      attachmentPage: { pageNum: 1, pageSize: 10, total: 0 },
       selectedScenes: [],
       sceneSelectAll: false,
-      sceneData: [
-        { id: 1, sceneName: '销售场景', industryText: 'ICT、消费者', businessScenario: '设备销售', ruleDetail: '单笔金额不超过500万的销售订单可自主决策', decisionLevel: '地区部', createdBy: 'admin', createdAt: '2024-03-10 10:30:00', updatedBy: '-', updatedAt: '-' }
-      ],
-      scenePage: { pageNum: 1, pageSize: 10, total: 1 },
+      sceneData: [],
+      scenePage: { pageNum: 1, pageSize: 10, total: 0 },
       sceneDialogVisible: false,
       editingScene: null,
       sceneForm: {
@@ -643,45 +656,10 @@ export default {
         conditions: [],
         conditionLogics: []
       },
-      industryTreeData: [
-        {
-          code: 'IND001',
-          name: 'ICT',
-          level: 0,
-          children: [
-            { code: 'IND001_1', name: '运营商', level: 1 },
-            { code: 'IND001_2', name: '企业', level: 1 }
-          ]
-        },
-        {
-          code: 'IND002',
-          name: '消费者',
-          level: 0,
-          children: [
-            { code: 'IND002_1', name: '手机', level: 1 },
-            { code: 'IND002_2', name: 'PC', level: 1 }
-          ]
-        },
-        { code: 'IND003', name: '云计算', level: 0 }
-      ],
-      businessScenarioOptions: [
-        { code: 'BS001', name: '设备销售' },
-        { code: 'BS002', name: '软件销售' },
-        { code: 'BS003', name: '服务销售' },
-        { code: 'BS004', name: '物料采购' }
-      ],
-      decisionLevelOptions: [
-        { code: 'ORGANIZATION', name: '机关' },
-        { code: 'REGIONAL_DEPT', name: '地区部' },
-        { code: 'REPRESENTATIVE_OFFICE', name: '代表处' },
-        { code: 'OFFICE', name: '办事处' }
-      ],
-      fieldOptions: [
-        { code: 'amount', name: '金额' },
-        { code: 'quantity', name: '数量' },
-        { code: 'customer_level', name: '客户等级' },
-        { code: 'product_type', name: '产品类型' }
-      ]
+      industryTreeData: [],
+      businessScenarioOptions: [],
+      decisionLevelOptions: [],
+      fieldOptions: []
     }
   },
   computed: {
@@ -705,11 +683,84 @@ export default {
   },
   mounted() {
     document.addEventListener('click', this.handleClickOutside)
+    this.loadInitialData()
   },
   beforeDestroy() {
     document.removeEventListener('click', this.handleClickOutside)
   },
   methods: {
+    async loadInitialData() {
+      try {
+        this.loading = true
+
+        // 从URL获取授权书ID
+        const urlParams = new URLSearchParams(window.location.search)
+        const id = urlParams.get('id')
+        this.authLetterId = id ? parseInt(id) : null
+        this.isNew = !this.authLetterId
+
+        // 并行加载下拉选项数据
+        const [authTargetLevelRes, authPublishLevelRes, applicableRegionRes, orgTreeRes, industryTreeRes, businessScenariosRes, decisionLevelsRes, ruleFieldsRes] = await Promise.all([
+          api.getLookupOptions('authTargetLevel'),
+          api.getLookupOptions('authPublishLevel'),
+          api.getLookupOptions('applicableRegion'),
+          api.getOrgTree(),
+          api.getIndustryTree(),
+          api.getBusinessScenarios(),
+          api.getDecisionLevels(),
+          api.getRuleFields()
+        ])
+
+        // 设置下拉选项
+        if (authTargetLevelRes.success) this.authTargetLevelOptions = authTargetLevelRes.data
+        if (authPublishLevelRes.success) this.authPublishLevelOptions = authPublishLevelRes.data
+        if (applicableRegionRes.success) this.applicableRegionOptions = applicableRegionRes.data
+        if (orgTreeRes.success) this.orgTreeData = orgTreeRes.data
+        if (industryTreeRes.success) this.industryTreeData = industryTreeRes.data
+        if (businessScenariosRes.success) this.businessScenarioOptions = businessScenariosRes.data
+        if (decisionLevelsRes.success) this.decisionLevelOptions = decisionLevelsRes.data
+        if (ruleFieldsRes.success) this.fieldOptions = ruleFieldsRes.data
+
+        // 如果是编辑模式，加载授权书详情
+        if (!this.isNew && this.authLetterId) {
+          await this.loadAuthLetterDetail()
+        }
+      } catch (error) {
+        console.error('加载数据失败:', error)
+        this.showMessage('加载数据失败', 'error')
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async loadAuthLetterDetail() {
+      try {
+        const res = await api.getAuthLetterDetail(this.authLetterId)
+        if (res.success && res.data) {
+          const detail = res.data
+          this.formData.name = detail.name
+          this.formData.authPublishLevel = detail.authPublishLevel || []
+          this.formData.authPublishOrg = detail.authPublishOrg || []
+          this.formData.authTargetLevel = detail.authTargetLevel || []
+          this.formData.applicableRegion = detail.applicableRegion || []
+          this.formData.publishYear = detail.publishYear
+          this.formData.contentSummary = detail.contentSummary || ''
+          this.pageStatus = detail.status
+
+          // 设置场景数据
+          if (detail.scenes) {
+            this.sceneData = detail.scenes
+            this.scenePage.total = detail.scenes.length
+          }
+        } else {
+          this.showMessage(res.message || '加载授权书详情失败', 'error')
+        }
+      } catch (error) {
+        console.error('加载授权书详情失败:', error)
+        this.showMessage('加载授权书详情失败', 'error')
+      }
+    },
+
     toggleDropdown(name) {
       this.activeDropdown = this.activeDropdown === name ? '' : name
     },
@@ -931,17 +982,185 @@ export default {
       if (!group.conditionLogics[index - 1]) this.$set(group.conditionLogics, index - 1, 'AND')
       group.conditionLogics[index - 1] = group.conditionLogics[index - 1] === 'AND' ? 'OR' : 'AND'
     },
-    handleSave() { this.showMessage('保存成功', 'success') },
-    handleSaveAndPublish() { this.showMessage('保存并发布成功', 'success'); this.pageStatus = 'PUBLISHED' },
-    handlePublish() {
-      this.showConfirm('确定要发布该授权书吗？').then(ok => {
-        if (ok) { this.showMessage('发布成功', 'success'); this.pageStatus = 'PUBLISHED' }
+
+    // ========== 授权书操作方法 ==========
+    validateForm() {
+      if (!this.formData.name) {
+        this.showMessage('请输入授权书名称', 'warning')
+        return false
+      }
+      if (this.formData.authPublishLevel.length === 0) {
+        this.showMessage('请选择授权发布层级', 'warning')
+        return false
+      }
+      if (this.formData.authPublishOrg.length === 0) {
+        this.showMessage('请选择授权发布组织', 'warning')
+        return false
+      }
+      if (this.formData.authTargetLevel.length === 0) {
+        this.showMessage('请选择授权对象层级', 'warning')
+        return false
+      }
+      if (this.formData.applicableRegion.length === 0) {
+        this.showMessage('请选择适用区域', 'warning')
+        return false
+      }
+      if (!this.formData.publishYear) {
+        this.showMessage('请选择授权书发布年份', 'warning')
+        return false
+      }
+      if (!this.formData.contentSummary) {
+        this.showMessage('请输入授权书内容摘要', 'warning')
+        return false
+      }
+      return true
+    },
+
+    getSubmitData() {
+      return {
+        name: this.formData.name,
+        authPublishLevel: this.formData.authPublishLevel,
+        authPublishOrg: this.formData.authPublishOrg,
+        authTargetLevel: this.formData.authTargetLevel,
+        applicableRegion: this.formData.applicableRegion,
+        publishYear: this.formData.publishYear,
+        contentSummary: this.formData.contentSummary,
+        scenes: this.sceneData
+      }
+    },
+
+    async handleSave() {
+      if (!this.validateForm()) return
+
+      try {
+        this.loading = true
+        const data = this.getSubmitData()
+        let res
+
+        if (this.isNew) {
+          res = await api.createAuthLetter(data)
+          if (res.success) {
+            this.authLetterId = res.data
+            this.isNew = false
+            this.showMessage('保存成功', 'success')
+            // 更新URL
+            window.history.replaceState({}, '', `?id=${this.authLetterId}`)
+          } else {
+            this.showMessage(res.message || '保存失败', 'error')
+          }
+        } else {
+          res = await api.updateAuthLetter(this.authLetterId, data)
+          if (res.success) {
+            this.showMessage('保存成功', 'success')
+          } else {
+            this.showMessage(res.message || '保存失败', 'error')
+          }
+        }
+      } catch (error) {
+        console.error('保存失败:', error)
+        this.showMessage('保存失败', 'error')
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async handleSaveAndPublish() {
+      if (!this.validateForm()) return
+
+      try {
+        this.loading = true
+        const data = this.getSubmitData()
+        let res
+
+        if (this.isNew) {
+          // 先创建
+          res = await api.createAuthLetter(data)
+          if (res.success) {
+            this.authLetterId = res.data
+            this.isNew = false
+            // 再发布
+            const publishRes = await api.publishAuthLetter(this.authLetterId)
+            if (publishRes.success) {
+              this.pageStatus = 'PUBLISHED'
+              this.showMessage('保存并发布成功', 'success')
+              window.history.replaceState({}, '', `?id=${this.authLetterId}`)
+            } else {
+              this.showMessage(publishRes.message || '发布失败', 'error')
+            }
+          } else {
+            this.showMessage(res.message || '保存失败', 'error')
+          }
+        } else {
+          // 先更新
+          res = await api.updateAuthLetter(this.authLetterId, data)
+          if (res.success) {
+            // 再发布
+            const publishRes = await api.publishAuthLetter(this.authLetterId)
+            if (publishRes.success) {
+              this.pageStatus = 'PUBLISHED'
+              this.showMessage('保存并发布成功', 'success')
+            } else {
+              this.showMessage(publishRes.message || '发布失败', 'error')
+            }
+          } else {
+            this.showMessage(res.message || '保存失败', 'error')
+          }
+        }
+      } catch (error) {
+        console.error('保存并发布失败:', error)
+        this.showMessage('保存并发布失败', 'error')
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async handlePublish() {
+      this.showConfirm('确定要发布该授权书吗？').then(async ok => {
+        if (ok) {
+          try {
+            this.loading = true
+            const res = await api.publishAuthLetter(this.authLetterId)
+            if (res.success) {
+              this.pageStatus = 'PUBLISHED'
+              this.showMessage('发布成功', 'success')
+            } else {
+              this.showMessage(res.message || '发布失败', 'error')
+            }
+          } catch (error) {
+            console.error('发布失败:', error)
+            this.showMessage('发布失败', 'error')
+          } finally {
+            this.loading = false
+          }
+        }
       })
     },
-    handleCancel() { this.showMessage('返回列表页', 'info') },
+
+    handleCancel() {
+      window.location.href = '/list.html'
+    },
+
     handleDeleteAuthLetter() {
-      this.showConfirm('确定要删除该授权书吗？').then(ok => {
-        if (ok) this.showMessage('删除成功', 'success')
+      this.showConfirm('确定要删除该授权书吗？').then(async ok => {
+        if (ok) {
+          try {
+            this.loading = true
+            const res = await api.deleteAuthLetter(this.authLetterId)
+            if (res.success) {
+              this.showMessage('删除成功', 'success')
+              setTimeout(() => {
+                window.location.href = '/list.html'
+              }, 1000)
+            } else {
+              this.showMessage(res.message || '删除失败', 'error')
+            }
+          } catch (error) {
+            console.error('删除失败:', error)
+            this.showMessage('删除失败', 'error')
+          } finally {
+            this.loading = false
+          }
+        }
       })
     },
     showMessage(text, type = 'info') {

@@ -2,7 +2,7 @@ package com.auth.letter.entity;
 
 import com.auth.letter.enums.AuthLetterStatus;
 import com.auth.letter.enums.OrgLevel;
-import jakarta.persistence.*;
+import javax.persistence.*;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -83,10 +83,22 @@ public class AuthLetter {
     private Integer publishYear;
 
     /**
+     * Authorization letter content summary
+     */
+    @Column(name = "content_summary", columnDefinition = "TEXT")
+    private String contentSummary;
+
+    /**
      * Creator username
      */
     @Column(name = "created_by", length = 100)
     private String createdBy;
+
+    /**
+     * Updater username
+     */
+    @Column(name = "updated_by", length = 100)
+    private String updatedBy;
 
     @Column(name = "valid_from")
     private LocalDateTime validFrom;

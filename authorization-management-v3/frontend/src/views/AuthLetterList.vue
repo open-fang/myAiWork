@@ -227,8 +227,6 @@
 </template>
 
 <script>
-import { lookupApi, authLetterApi } from '@/api'
-
 // ========== 树节点组件 ==========
 const TreeNode = {
   name: 'TreeNode',
@@ -251,14 +249,10 @@ const TreeNode = {
     isIndeterminate() {
       if (!this.hasChildren) return false
       const checkChildren = (children) => {
-        let hasChecked = false
-        let hasUnchecked = false
+        let hasChecked = false, hasUnchecked = false
         for (const child of children) {
-          if (this.selectedCodes.includes(child.code)) {
-            hasChecked = true
-          } else {
-            hasUnchecked = true
-          }
+          if (this.selectedCodes.includes(child.code)) hasChecked = true
+          else hasUnchecked = true
           if (child.children) {
             const result = checkChildren(child.children)
             hasChecked = hasChecked || result.hasChecked
@@ -272,12 +266,8 @@ const TreeNode = {
     }
   },
   methods: {
-    toggleCheck() {
-      this.$emit('toggle', this.node)
-    },
-    toggleExpand() {
-      this.expanded = !this.expanded
-    }
+    toggleCheck() { this.$emit('toggle', this.node) },
+    toggleExpand() { this.expanded = !this.expanded }
   },
   template: `
     <div class="tree-node">
@@ -288,23 +278,50 @@ const TreeNode = {
         <span class="tree-node-label" @click="toggleCheck">{{ node.name }}</span>
       </div>
       <div v-if="hasChildren && expanded" class="tree-children">
-        <tree-node
-          v-for="child in node.children"
-          :key="child.code"
-          :node="{ ...child, level: (node.level || 0) + 1 }"
-          :selected-codes="selectedCodes"
-          @toggle="$emit('toggle', $event)"
-        />
+        <tree-node v-for="child in node.children" :key="child.code" :node="{ ...child, level: (node.level || 0) + 1 }" :selected-codes="selectedCodes" @toggle="$emit('toggle', $event)" />
       </div>
     </div>
   `
 }
 
+// ========== API 请求方法 ==========
+const BASE_URL = '/api'
+
+async function request(url, options = {}) {
+  const config = {
+    headers: { 'Content-Type': 'application/json' },
+    ...options,
+    headers: { ...options.headers, 'Content-Type': 'application/json' }
+  }
+  if (config.body && typeof config.body === 'object') {
+    config.body = JSON.stringify(config.body)
+  }
+  const response = await fetch(BASE_URL + url, config)
+  if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+  return response.json()
+}
+
+const api = {
+  // Lookup服务
+  getLookupOptions: (code) => request(`/lookup/${code}`),
+  getOrgTree: () => request('/lookup/org/tree'),
+
+  // 授权书管理
+  getAuthLetterList: (params) => {
+    const queryStr = Object.entries(params)
+      .filter(([, v]) => v !== null && v !== undefined && v !== '')
+      .map(([k, v]) => Array.isArray(v) ? v.map(x => `${k}=${encodeURIComponent(x)}`).join('&') : `${k}=${encodeURIComponent(v)}`)
+      .join('&')
+    return request(`/auth-letters?${queryStr}`)
+  },
+  batchPublish: (ids) => request('/auth-letters/batch/publish', { method: 'PUT', body: { ids } }),
+  batchExpire: (ids) => request('/auth-letters/batch/expire', { method: 'PUT', body: { ids } }),
+  batchDelete: (ids) => request('/auth-letters/batch', { method: 'DELETE', body: { ids } })
+}
+
 export default {
   name: 'AuthLetterList',
-  components: {
-    TreeNode
-  },
+  components: { TreeNode },
   data() {
     return {
       loading: false,
@@ -312,17 +329,8 @@ export default {
       selectAll: false,
       selectedRows: [],
       jumpPage: 1,
-      message: {
-        show: false,
-        type: 'info',
-        text: ''
-      },
-      confirmDialog: {
-        show: false,
-        text: '',
-        onConfirm: () => {},
-        onCancel: () => {}
-      },
+      message: { show: false, type: 'info', text: '' },
+      confirmDialog: { show: false, text: '', onConfirm: () => {}, onCancel: () => {} },
       queryParams: {
         name: '',
         authTargetLevel: [],
@@ -332,12 +340,7 @@ export default {
         publishYear: null,
         status: ''
       },
-      pagination: {
-        pageNum: 1,
-        pageSize: 10,
-        total: 0
-      },
-      // 下拉选项数据（从API获取）
+      pagination: { pageNum: 1, pageSize: 10, total: 0 },
       authTargetLevelOptions: [],
       applicableRegionOptions: [],
       authPublishLevelOptions: [],
@@ -351,15 +354,10 @@ export default {
     }
   },
   computed: {
-    totalPages() {
-      return Math.ceil(this.pagination.total / this.pagination.pageSize) || 1
-    },
+    totalPages() { return Math.ceil(this.pagination.total / this.pagination.pageSize) || 1 },
     yearOptions() {
       const years = []
-      const currentYear = new Date().getFullYear()
-      for (let i = currentYear; i >= currentYear - 10; i--) {
-        years.push(i)
-      }
+      for (let i = new Date().getFullYear(); i >= new Date().getFullYear() - 10; i--) years.push(i)
       return years
     }
   },
@@ -372,14 +370,13 @@ export default {
     document.removeEventListener('click', this.handleClickOutside)
   },
   methods: {
-    // 加载Lookup数据
     async loadLookupData() {
       try {
         const [targetLevel, region, publishLevel, orgTree] = await Promise.all([
-          lookupApi.getOptions('authTargetLevel'),
-          lookupApi.getOptions('applicableRegion'),
-          lookupApi.getOptions('authPublishLevel'),
-          lookupApi.getOrgTree()
+          api.getLookupOptions('authTargetLevel'),
+          api.getLookupOptions('applicableRegion'),
+          api.getLookupOptions('authPublishLevel'),
+          api.getOrgTree()
         ])
         this.authTargetLevelOptions = targetLevel.data || []
         this.applicableRegionOptions = region.data || []
@@ -390,7 +387,6 @@ export default {
       }
     },
 
-    // 加载表格数据
     async loadTableData() {
       this.loading = true
       try {
@@ -401,20 +397,12 @@ export default {
           publishYear: this.queryParams.publishYear || undefined,
           status: this.queryParams.status || undefined
         }
-        if (this.queryParams.authTargetLevel.length > 0) {
-          params.authTargetLevel = this.queryParams.authTargetLevel
-        }
-        if (this.queryParams.applicableRegion.length > 0) {
-          params.applicableRegion = this.queryParams.applicableRegion
-        }
-        if (this.queryParams.authPublishLevel.length > 0) {
-          params.authPublishLevel = this.queryParams.authPublishLevel
-        }
-        if (this.queryParams.authPublishOrg.length > 0) {
-          params.authPublishOrg = this.queryParams.authPublishOrg
-        }
+        if (this.queryParams.authTargetLevel.length > 0) params.authTargetLevel = this.queryParams.authTargetLevel
+        if (this.queryParams.applicableRegion.length > 0) params.applicableRegion = this.queryParams.applicableRegion
+        if (this.queryParams.authPublishLevel.length > 0) params.authPublishLevel = this.queryParams.authPublishLevel
+        if (this.queryParams.authPublishOrg.length > 0) params.authPublishOrg = this.queryParams.authPublishOrg
 
-        const res = await authLetterApi.getList(params)
+        const res = await api.getAuthLetterList(params)
         this.tableData = res.data?.list || []
         this.pagination.total = res.data?.total || 0
       } catch (error) {
@@ -425,49 +413,30 @@ export default {
       }
     },
 
-    toggleSelect(name) {
-      this.activeDropdown = this.activeDropdown === name ? '' : name
-    },
+    toggleSelect(name) { this.activeDropdown = this.activeDropdown === name ? '' : name },
     toggleMultiSelect(field, value) {
       const index = this.queryParams[field].indexOf(value)
-      if (index > -1) {
-        this.queryParams[field].splice(index, 1)
-      } else {
-        this.queryParams[field].push(value)
-      }
+      if (index > -1) this.queryParams[field].splice(index, 1)
+      else this.queryParams[field].push(value)
     },
     removeSelected(field, value) {
       const index = this.queryParams[field].indexOf(value)
-      if (index > -1) {
-        this.queryParams[field].splice(index, 1)
-      }
+      if (index > -1) this.queryParams[field].splice(index, 1)
     },
-    selectYear(year) {
-      this.queryParams.publishYear = year
-      this.activeDropdown = ''
-    },
-    selectStatus(value) {
-      this.queryParams.status = value
-      this.activeDropdown = ''
-    },
+    selectYear(year) { this.queryParams.publishYear = year; this.activeDropdown = '' },
+    selectStatus(value) { this.queryParams.status = value; this.activeDropdown = '' },
     getStatusLabel(value) {
       const item = this.statusOptions.find(s => s.value === value)
       return item ? item.label : ''
     },
     getSelectedLabels(codes, options) {
-      return codes.map(code => {
-        const item = options.find(o => o.code === code)
-        return item ? item.name : code
-      })
+      return codes.map(code => { const item = options.find(o => o.code === code); return item ? item.name : code })
     },
     getOrgName(code) {
       const findNode = (nodes, targetCode) => {
         for (const node of nodes) {
           if (node.code === targetCode) return node.name
-          if (node.children) {
-            const found = findNode(node.children, targetCode)
-            if (found) return found
-          }
+          if (node.children) { const found = findNode(node.children, targetCode); if (found) return found }
         }
         return null
       }
@@ -476,108 +445,58 @@ export default {
     toggleTreeNode(node) {
       const toggleNodeAndChildren = (n, shouldCheck) => {
         const index = this.queryParams.authPublishOrg.indexOf(n.code)
-        if (shouldCheck && index === -1) {
-          this.queryParams.authPublishOrg.push(n.code)
-        } else if (!shouldCheck && index > -1) {
-          this.queryParams.authPublishOrg.splice(index, 1)
-        }
-        if (n.children) {
-          n.children.forEach(child => toggleNodeAndChildren(child, shouldCheck))
-        }
+        if (shouldCheck && index === -1) this.queryParams.authPublishOrg.push(n.code)
+        else if (!shouldCheck && index > -1) this.queryParams.authPublishOrg.splice(index, 1)
+        if (n.children) n.children.forEach(child => toggleNodeAndChildren(child, shouldCheck))
       }
-      const isChecked = this.queryParams.authPublishOrg.includes(node.code)
-      toggleNodeAndChildren(node, !isChecked)
+      toggleNodeAndChildren(node, !this.queryParams.authPublishOrg.includes(node.code))
     },
     handleSelectAll() {
-      if (this.selectAll) {
-        this.selectedRows = this.tableData.map(row => row.id)
-      } else {
-        this.selectedRows = []
-      }
+      this.selectedRows = this.selectAll ? this.tableData.map(row => row.id) : []
     },
-    handleSizeChange() {
-      this.pagination.pageNum = 1
-      this.loadTableData()
-    },
-    handlePageChange(page) {
-      this.pagination.pageNum = page
-      this.loadTableData()
-    },
+    handleSizeChange() { this.pagination.pageNum = 1; this.loadTableData() },
+    handlePageChange(page) { this.pagination.pageNum = page; this.loadTableData() },
     handleJumpPage() {
       if (this.jumpPage >= 1 && this.jumpPage <= this.totalPages) {
         this.pagination.pageNum = this.jumpPage
         this.loadTableData()
       }
     },
-    formatArrayText(arr) {
-      if (!arr || arr.length === 0) return '-'
-      return arr.join('、')
-    },
+    formatArrayText(arr) { return !arr || arr.length === 0 ? '-' : arr.join('、') },
     showMessage(text, type = 'info') {
-      this.message.text = text
-      this.message.type = type
-      this.message.show = true
-      setTimeout(() => {
-        this.message.show = false
-      }, 3000)
+      this.message = { show: true, type, text }
+      setTimeout(() => { this.message.show = false }, 3000)
     },
     showConfirm(text) {
       return new Promise((resolve) => {
-        this.confirmDialog.show = true
-        this.confirmDialog.text = text
-        this.confirmDialog.onConfirm = () => {
-          this.confirmDialog.show = false
-          resolve(true)
-        }
-        this.confirmDialog.onCancel = () => {
-          this.confirmDialog.show = false
-          resolve(false)
+        this.confirmDialog = {
+          show: true, text,
+          onConfirm: () => { this.confirmDialog.show = false; resolve(true) },
+          onCancel: () => { this.confirmDialog.show = false; resolve(false) }
         }
       })
     },
-    handleQuery() {
-      this.pagination.pageNum = 1
-      this.loadTableData()
-    },
+    handleQuery() { this.pagination.pageNum = 1; this.loadTableData() },
     handleReset() {
-      this.queryParams.name = ''
-      this.queryParams.authTargetLevel = []
-      this.queryParams.applicableRegion = []
-      this.queryParams.authPublishLevel = []
-      this.queryParams.authPublishOrg = []
-      this.queryParams.publishYear = null
-      this.queryParams.status = ''
+      Object.assign(this.queryParams, { name: '', authTargetLevel: [], applicableRegion: [], authPublishLevel: [], authPublishOrg: [], publishYear: null, status: '' })
       this.pagination.pageNum = 1
       this.loadTableData()
     },
     checkSelection() {
-      if (this.selectedRows.length === 0) {
-        this.showMessage('请先选择数据', 'warning')
-        return false
-      }
+      if (this.selectedRows.length === 0) { this.showMessage('请先选择数据', 'warning'); return false }
       return true
     },
-    handleCreate() {
-      // 跳转到新建页面
-      this.$router.push('/auth-letter/create')
-    },
-    handleUpdate() {
-      if (!this.checkSelection()) return
-      this.showMessage('更新功能待实现', 'info')
-    },
+    handleCreate() { this.$router.push('/auth-letter/create') },
+    handleUpdate() { if (this.checkSelection()) this.showMessage('更新功能待实现', 'info') },
     async handleActivate() {
       if (!this.checkSelection()) return
       const confirmed = await this.showConfirm(`确定要将选中的 ${this.selectedRows.length} 条数据发布生效吗？`)
       if (confirmed) {
         try {
-          await authLetterApi.batchPublish(this.selectedRows)
+          await api.batchPublish(this.selectedRows)
           this.showMessage('操作成功', 'success')
-          this.selectedRows = []
-          this.selectAll = false
-          this.loadTableData()
-        } catch (error) {
-          this.showMessage('操作失败', 'error')
-        }
+          this.selectedRows = []; this.selectAll = false; this.loadTableData()
+        } catch (error) { this.showMessage('操作失败', 'error') }
       }
     },
     async handleDeactivate() {
@@ -585,14 +504,10 @@ export default {
       const confirmed = await this.showConfirm(`确定要将选中的 ${this.selectedRows.length} 条数据设为失效吗？`)
       if (confirmed) {
         try {
-          await authLetterApi.batchExpire(this.selectedRows)
+          await api.batchExpire(this.selectedRows)
           this.showMessage('操作成功', 'success')
-          this.selectedRows = []
-          this.selectAll = false
-          this.loadTableData()
-        } catch (error) {
-          this.showMessage('操作失败', 'error')
-        }
+          this.selectedRows = []; this.selectAll = false; this.loadTableData()
+        } catch (error) { this.showMessage('操作失败', 'error') }
       }
     },
     async handleDelete() {
@@ -600,19 +515,13 @@ export default {
       const confirmed = await this.showConfirm(`确定要删除选中的 ${this.selectedRows.length} 条数据吗？`)
       if (confirmed) {
         try {
-          await authLetterApi.batchDelete(this.selectedRows)
+          await api.batchDelete(this.selectedRows)
           this.showMessage('删除成功', 'success')
-          this.selectedRows = []
-          this.selectAll = false
-          this.loadTableData()
-        } catch (error) {
-          this.showMessage('删除失败', 'error')
-        }
+          this.selectedRows = []; this.selectAll = false; this.loadTableData()
+        } catch (error) { this.showMessage('删除失败', 'error') }
       }
     },
-    goToDetail(id) {
-      this.$router.push(`/auth-letter/${id}`)
-    },
+    goToDetail(id) { this.$router.push(`/auth-letter/${id}`) },
     handleClickOutside(event) {
       if (!event.target.closest('.multi-select-wrapper, .tree-select-wrapper, .select-wrapper, .year-select-wrapper')) {
         this.activeDropdown = ''
@@ -623,529 +532,83 @@ export default {
 </script>
 
 <style scoped>
-/* 样式保持不变，与之前相同 */
-* {
-  box-sizing: border-box;
-}
-
-.auth-letter-list-page {
-  padding: 20px;
-  background-color: #f5f7fa;
-  min-height: 100vh;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 14px;
-  color: #333;
-}
-
-.query-card {
-  background: #fff;
-  border-radius: 4px;
-  padding: 20px;
-  margin-bottom: 16px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-}
-
-.query-form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.form-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-}
-
-.form-item {
-  display: flex;
-  align-items: center;
-}
-
-.form-label {
-  width: 100px;
-  text-align: right;
-  color: #666;
-  flex-shrink: 0;
-  margin-right: 12px;
-}
-
-.form-input {
-  flex: 1;
-  height: 32px;
-  padding: 0 12px;
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
-  outline: none;
-  transition: border-color 0.2s;
-}
-
-.form-input:focus {
-  border-color: #409eff;
-}
-
-.query-buttons {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid #eee;
-}
-
-.btn {
-  padding: 8px 16px;
-  border-radius: 4px;
-  border: 1px solid #dcdfe6;
-  background: #fff;
-  cursor: pointer;
-  font-size: 14px;
-  transition: all 0.2s;
-}
-
-.btn:hover {
-  opacity: 0.9;
-}
-
-.btn-primary {
-  background: #409eff;
-  border-color: #409eff;
-  color: #fff;
-}
-
-.btn-success {
-  background: #67c23a;
-  border-color: #67c23a;
-  color: #fff;
-}
-
-.btn-warning {
-  background: #e6a23c;
-  border-color: #e6a23c;
-  color: #fff;
-}
-
-.btn-danger {
-  background: #f56c6c;
-  border-color: #f56c6c;
-  color: #fff;
-}
-
-.btn-default {
-  background: #fff;
-  color: #191919;
-  border-color: #dcdfe6;
-}
-
-.multi-select-wrapper,
-.tree-select-wrapper,
-.select-wrapper,
-.year-select-wrapper {
-  flex: 1;
-  position: relative;
-}
-
-.multi-select-trigger,
-.tree-select-trigger,
-.select-trigger,
-.year-select-trigger {
-  height: 32px;
-  padding: 0 30px 0 12px;
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
-  background: #fff;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  position: relative;
-}
-
-.arrow {
-  position: absolute;
-  right: 10px;
-  font-size: 12px;
-  color: #c0c4cc;
-}
-
-.placeholder {
-  color: #c0c4cc;
-}
-
-.selected-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.tag {
-  background: #f0f2f5;
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.tag-close {
-  cursor: pointer;
-  color: #909399;
-}
-
-.tag-close:hover {
-  color: #409eff;
-}
-
-.multi-select-dropdown,
-.tree-select-dropdown,
-.select-dropdown,
-.year-select-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background: #fff;
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-  z-index: 100;
-  max-height: 250px;
-  overflow-y: auto;
-  margin-top: 4px;
-}
-
-.select-option,
-.year-option {
-  padding: 8px 12px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.select-option:hover,
-.year-option:hover {
-  background: #f5f7fa;
-}
-
-.checkbox {
-  width: 14px;
-  height: 14px;
-  border: 1px solid #dcdfe6;
-  border-radius: 2px;
-  display: inline-block;
-  position: relative;
-}
-
-.checkbox.checked {
-  background: #409eff;
-  border-color: #409eff;
-}
-
-.checkbox.checked::after {
-  content: '✓';
-  color: #fff;
-  font-size: 10px;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
-
-.tree-node-content {
-  display: flex;
-  align-items: center;
-  padding: 6px 8px;
-  cursor: pointer;
-}
-
-.tree-node-content:hover {
-  background: #f5f7fa;
-}
-
-.tree-expand-icon {
-  width: 16px;
-  font-size: 10px;
-  color: #c0c4cc;
-  transition: transform 0.2s;
-}
-
-.tree-expand-icon.expanded {
-  transform: rotate(90deg);
-}
-
-.tree-expand-placeholder {
-  width: 16px;
-}
-
-.tree-checkbox {
-  width: 14px;
-  height: 14px;
-  border: 1px solid #dcdfe6;
-  border-radius: 2px;
-  margin-right: 8px;
-  position: relative;
-}
-
-.tree-checkbox.checked {
-  background: #409eff;
-  border-color: #409eff;
-}
-
-.tree-checkbox.checked::after {
-  content: '✓';
-  color: #fff;
-  font-size: 10px;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
-
-.tree-checkbox.indeterminate {
-  background: #409eff;
-  border-color: #409eff;
-}
-
-.tree-checkbox.indeterminate::after {
-  content: '-';
-  color: #fff;
-  font-size: 12px;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
-
-.tree-node-label {
-  font-size: 14px;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 16px;
-}
-
-.table-card {
-  background: #fff;
-  border-radius: 4px;
-  padding: 20px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.data-table th,
-.data-table td {
-  padding: 12px 8px;
-  text-align: left;
-  border-bottom: 1px solid #ebeef5;
-}
-
-.data-table th {
-  background: #f5f7fa;
-  font-weight: 600;
-  color: #909399;
-}
-
-.data-table tbody tr:hover {
-  background: #f5f7fa;
-}
-
-.col-checkbox {
-  width: 50px;
-  text-align: center;
-}
-
-.col-index {
-  width: 60px;
-  text-align: center;
-}
-
-.col-action {
-  width: 60px;
-  text-align: center;
-  white-space: nowrap;
-}
-
-.col-status {
-  width: 80px;
-  text-align: center;
-}
-
-.col-year,
-.col-user {
-  width: 100px;
-  text-align: center;
-}
-
-.col-time {
-  width: 160px;
-  text-align: center;
-}
-
-.icon-btn {
-  cursor: pointer;
-  font-size: 16px;
-}
-
-.icon-btn:hover {
-  opacity: 0.7;
-}
-
-.link {
-  color: #409eff;
-  cursor: pointer;
-  text-decoration: none;
-}
-
-.link:hover {
-  text-decoration: underline;
-}
-
-.status-tag {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-}
-
-.status-draft {
-  background: #f4f4f5;
-  color: #909399;
-}
-
-.status-published {
-  background: #f0f9eb;
-  color: #67c23a;
-}
-
-.status-expired {
-  background: #fef0f0;
-  color: #f56c6c;
-}
-
-.pagination {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 16px;
-  font-size: 13px;
-  color: #606266;
-}
-
-.pagination-size {
-  height: 28px;
-  padding: 0 8px;
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
-}
-
-.pagination-btn {
-  padding: 4px 12px;
-  border: 1px solid #dcdfe6;
-  background: #fff;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.pagination-btn:disabled {
-  color: #c0c4cc;
-  cursor: not-allowed;
-}
-
-.pagination-jump input {
-  width: 50px;
-  height: 28px;
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
-  text-align: center;
-  margin: 0 4px;
-}
-
-.message-box {
-  position: fixed;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 12px 24px;
-  border-radius: 4px;
-  z-index: 1000;
-  animation: fadeIn 0.3s;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
-  to { opacity: 1; transform: translateX(-50%) translateY(0); }
-}
-
-.message-info {
-  background: #edf2fc;
-  color: #909399;
-  border: 1px solid #dcdfe6;
-}
-
-.message-success {
-  background: #f0f9eb;
-  color: #67c23a;
-  border: 1px solid #e1f3d8;
-}
-
-.message-warning {
-  background: #fdf6ec;
-  color: #e6a23c;
-  border: 1px solid #faecd8;
-}
-
-.message-error {
-  background: #fef0f0;
-  color: #f56c6c;
-  border: 1px solid #fde2e2;
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-dialog {
-  background: #fff;
-  border-radius: 8px;
-  min-width: 400px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
-}
-
-.modal-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid #eee;
-}
-
-.modal-title {
-  font-weight: 600;
-}
-
-.modal-body {
-  padding: 20px;
-}
-
-.modal-footer {
-  padding: 16px 20px;
-  border-top: 1px solid #eee;
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
+* { box-sizing: border-box; }
+.auth-letter-list-page { padding: 20px; background-color: #f5f7fa; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; color: #333; }
+.query-card { background: #fff; border-radius: 4px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1); }
+.query-form { display: flex; flex-direction: column; gap: 16px; }
+.form-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.form-item { display: flex; align-items: center; }
+.form-label { width: 100px; text-align: right; color: #666; flex-shrink: 0; margin-right: 12px; }
+.form-input { flex: 1; height: 32px; padding: 0 12px; border: 1px solid #dcdfe6; border-radius: 4px; outline: none; transition: border-color 0.2s; }
+.form-input:focus { border-color: #409eff; }
+.query-buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; padding-top: 16px; border-top: 1px solid #eee; }
+.btn { padding: 8px 16px; border-radius: 4px; border: 1px solid #dcdfe6; background: #fff; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+.btn:hover { opacity: 0.9; }
+.btn-primary { background: #409eff; border-color: #409eff; color: #fff; }
+.btn-success { background: #67c23a; border-color: #67c23a; color: #fff; }
+.btn-warning { background: #e6a23c; border-color: #e6a23c; color: #fff; }
+.btn-danger { background: #f56c6c; border-color: #f56c6c; color: #fff; }
+.btn-default { background: #fff; color: #191919; border-color: #dcdfe6; }
+.multi-select-wrapper, .tree-select-wrapper, .select-wrapper, .year-select-wrapper { flex: 1; position: relative; }
+.multi-select-trigger, .tree-select-trigger, .select-trigger, .year-select-trigger { height: 32px; padding: 0 30px 0 12px; border: 1px solid #dcdfe6; border-radius: 4px; background: #fff; cursor: pointer; display: flex; align-items: center; position: relative; }
+.arrow { position: absolute; right: 10px; font-size: 12px; color: #c0c4cc; }
+.placeholder { color: #c0c4cc; }
+.selected-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.tag { background: #f0f2f5; padding: 2px 6px; border-radius: 3px; font-size: 12px; display: flex; align-items: center; gap: 4px; }
+.tag-close { cursor: pointer; color: #909399; }
+.tag-close:hover { color: #409eff; }
+.multi-select-dropdown, .tree-select-dropdown, .select-dropdown, .year-select-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid #dcdfe6; border-radius: 4px; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1); z-index: 100; max-height: 250px; overflow-y: auto; margin-top: 4px; }
+.select-option, .year-option { padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+.select-option:hover, .year-option:hover { background: #f5f7fa; }
+.checkbox { width: 14px; height: 14px; border: 1px solid #dcdfe6; border-radius: 2px; display: inline-block; position: relative; }
+.checkbox.checked { background: #409eff; border-color: #409eff; }
+.checkbox.checked::after { content: '✓'; color: #fff; font-size: 10px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+.tree-node-content { display: flex; align-items: center; padding: 6px 8px; cursor: pointer; }
+.tree-node-content:hover { background: #f5f7fa; }
+.tree-expand-icon { width: 16px; font-size: 10px; color: #c0c4cc; transition: transform 0.2s; }
+.tree-expand-icon.expanded { transform: rotate(90deg); }
+.tree-expand-placeholder { width: 16px; }
+.tree-checkbox { width: 14px; height: 14px; border: 1px solid #dcdfe6; border-radius: 2px; margin-right: 8px; position: relative; }
+.tree-checkbox.checked { background: #409eff; border-color: #409eff; }
+.tree-checkbox.checked::after { content: '✓'; color: #fff; font-size: 10px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+.tree-checkbox.indeterminate { background: #409eff; border-color: #409eff; }
+.tree-checkbox.indeterminate::after { content: '-'; color: #fff; font-size: 12px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+.tree-node-label { font-size: 14px; }
+.action-buttons { display: flex; gap: 10px; margin-bottom: 16px; }
+.table-card { background: #fff; border-radius: 4px; padding: 20px; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1); }
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th, .data-table td { padding: 12px 8px; text-align: left; border-bottom: 1px solid #ebeef5; }
+.data-table th { background: #f5f7fa; font-weight: 600; color: #909399; }
+.data-table tbody tr:hover { background: #f5f7fa; }
+.col-checkbox { width: 50px; text-align: center; }
+.col-index { width: 60px; text-align: center; }
+.col-action { width: 60px; text-align: center; white-space: nowrap; }
+.col-status { width: 80px; text-align: center; }
+.col-year, .col-user { width: 100px; text-align: center; }
+.col-time { width: 160px; text-align: center; }
+.icon-btn { cursor: pointer; font-size: 16px; }
+.icon-btn:hover { opacity: 0.7; }
+.link { color: #409eff; cursor: pointer; text-decoration: none; }
+.link:hover { text-decoration: underline; }
+.status-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+.status-draft { background: #f4f4f5; color: #909399; }
+.status-published { background: #f0f9eb; color: #67c23a; }
+.status-expired { background: #fef0f0; color: #f56c6c; }
+.pagination { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: 16px; font-size: 13px; color: #606266; }
+.pagination-size { height: 28px; padding: 0 8px; border: 1px solid #dcdfe6; border-radius: 4px; }
+.pagination-btn { padding: 4px 12px; border: 1px solid #dcdfe6; background: #fff; border-radius: 4px; cursor: pointer; }
+.pagination-btn:disabled { color: #c0c4cc; cursor: not-allowed; }
+.pagination-jump input { width: 50px; height: 28px; border: 1px solid #dcdfe6; border-radius: 4px; text-align: center; margin: 0 4px; }
+.message-box { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); padding: 12px 24px; border-radius: 4px; z-index: 1000; animation: fadeIn 0.3s; }
+@keyframes fadeIn { from { opacity: 0; transform: translateX(-50%) translateY(-10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+.message-info { background: #edf2fc; color: #909399; border: 1px solid #dcdfe6; }
+.message-success { background: #f0f9eb; color: #67c23a; border: 1px solid #e1f3d8; }
+.message-warning { background: #fdf6ec; color: #e6a23c; border: 1px solid #faecd8; }
+.message-error { background: #fef0f0; color: #f56c6c; border: 1px solid #fde2e2; }
+.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.modal-dialog { background: #fff; border-radius: 8px; min-width: 400px; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2); }
+.modal-header { padding: 16px 20px; border-bottom: 1px solid #eee; }
+.modal-title { font-weight: 600; }
+.modal-body { padding: 20px; }
+.modal-footer { padding: 16px 20px; border-top: 1px solid #eee; display: flex; justify-content: flex-end; gap: 10px; }
 </style>

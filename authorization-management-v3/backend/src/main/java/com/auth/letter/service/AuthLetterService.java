@@ -1,5 +1,7 @@
 package com.auth.letter.service;
 
+import com.auth.letter.dto.AuthLetterDetailDTO;
+import com.auth.letter.dto.AuthLetterDetailVO;
 import com.auth.letter.dto.AuthLetterListVO;
 import com.auth.letter.dto.AuthLetterQueryDTO;
 import com.auth.letter.dto.PageResult;
@@ -17,6 +19,39 @@ public interface AuthLetterService {
      * @return paginated result
      */
     PageResult<AuthLetterListVO> queryList(AuthLetterQueryDTO queryDTO);
+
+    /**
+     * Get authorization letter detail by id
+     * @param id authorization letter id
+     * @return detail view object
+     */
+    AuthLetterDetailVO getDetail(Long id);
+
+    /**
+     * Create authorization letter
+     * @param dto detail dto
+     * @return created id
+     */
+    Long create(AuthLetterDetailDTO dto);
+
+    /**
+     * Update authorization letter
+     * @param id authorization letter id
+     * @param dto detail dto
+     */
+    void update(Long id, AuthLetterDetailDTO dto);
+
+    /**
+     * Delete authorization letter by id
+     * @param id authorization letter id
+     */
+    void delete(Long id);
+
+    /**
+     * Publish authorization letter
+     * @param id authorization letter id
+     */
+    void publish(Long id);
 
     /**
      * Batch publish authorization letters (DRAFT -> PUBLISHED)

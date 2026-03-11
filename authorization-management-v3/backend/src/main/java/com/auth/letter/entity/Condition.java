@@ -1,7 +1,7 @@
 package com.auth.letter.entity;
 
 import com.auth.letter.enums.LogicOperator;
-import jakarta.persistence.*;
+import javax.persistence.*;
 import lombok.Data;
 
 import java.time.LocalDateTime;
