@@ -168,7 +168,7 @@
             <td class="col-checkbox"><input type="checkbox" v-model="selectedRows" :value="row.id" /></td>
             <td class="col-index">{{ (pagination.pageNum - 1) * pagination.pageSize + index + 1 }}</td>
             <td class="col-action">
-              <span v-if="row.status === 'DRAFT'" class="icon-btn edit-icon" @click="goToDetail(row.id)" title="编辑">✏️</span>
+              <span v-if="row.status === 'DRAFT'" class="icon-btn" @click="goToDetail(row.id)" title="编辑">✏️</span>
             </td>
             <td class="col-name"><a class="link" @click="goToDetail(row.id)">{{ row.name }}</a></td>
             <td class="col-status"><span class="status-tag" :class="'status-' + row.status.toLowerCase()">{{ row.statusText }}</span></td>
@@ -753,7 +753,8 @@ onUnmounted(() => {
 
 .btn-default {
   background: #fff;
-  color: #333;
+  color: #191919;
+  border-color: #dcdfe6;
 }
 
 /* 下拉选择 */
@@ -999,6 +1000,7 @@ onUnmounted(() => {
 .col-action {
   width: 60px;
   text-align: center;
+  white-space: nowrap;
 }
 
 .col-status {
@@ -1022,7 +1024,7 @@ onUnmounted(() => {
   font-size: 16px;
 }
 
-.edit-icon:hover {
+.icon-btn:hover {
   opacity: 0.7;
 }
 

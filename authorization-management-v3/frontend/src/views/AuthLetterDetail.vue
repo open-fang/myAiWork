@@ -135,9 +135,9 @@
           <span class="section-label">附件</span>
           <div class="section-content">
             <div class="action-bar">
-              <button class="btn btn-primary btn-sm" @click="handleUpload">📤 上传</button>
-              <button class="btn btn-default btn-sm" @click="handleDownloadAttachment">📥 下载</button>
-              <button class="btn btn-danger btn-sm" @click="handleDeleteAttachment">🗑️ 删除</button>
+              <button class="btn btn-primary btn-sm" @click="handleUpload">上传</button>
+              <button class="btn btn-default btn-sm" @click="handleDownloadAttachment">下载</button>
+              <button class="btn btn-danger btn-sm" @click="handleDeleteAttachment">删除</button>
             </div>
             <table class="data-table">
               <thead>
@@ -194,8 +194,8 @@
           <span class="section-label">授权规则</span>
           <div class="section-content">
             <div class="action-bar">
-              <button class="btn btn-primary btn-sm" @click="openSceneDialog()">➕ 添加场景</button>
-              <button class="btn btn-danger btn-sm" @click="handleDeleteScene">🗑️ 删除</button>
+              <button class="btn btn-primary btn-sm" @click="openSceneDialog()">添加场景</button>
+              <button class="btn btn-danger btn-sm" @click="handleDeleteScene">删除</button>
             </div>
             <table class="data-table">
               <thead>
@@ -252,11 +252,11 @@
 
     <!-- 底部悬浮按钮 -->
     <div class="bottom-actions">
-      <button class="btn btn-default" @click="handleSave" :disabled="!canSave">💾 保存</button>
-      <button class="btn btn-primary" @click="handleSaveAndPublish" :disabled="!canSaveAndPublish">🚀 保存并发布</button>
-      <button class="btn btn-success" @click="handlePublish" :disabled="!canPublish">📢 发布</button>
-      <button class="btn btn-default" @click="handleCancel">✖️ 取消</button>
-      <button class="btn btn-danger" @click="handleDeleteAuthLetter" :disabled="!canDelete">🗑️ 删除</button>
+      <button class="btn btn-default" @click="handleSave" :disabled="!canSave">保存</button>
+      <button class="btn btn-primary" @click="handleSaveAndPublish" :disabled="!canSaveAndPublish">保存并发布</button>
+      <button class="btn btn-success" @click="handlePublish" :disabled="!canPublish">发布</button>
+      <button class="btn btn-default" @click="handleCancel">取消</button>
+      <button class="btn btn-danger" @click="handleDeleteAuthLetter" :disabled="!canDelete">删除</button>
     </div>
 
     <!-- 场景配置弹窗 -->
@@ -341,22 +341,23 @@
                 <span class="rule-config-title">规则配置</span>
               </div>
               <div class="rule-config-body">
-                <div class="condition-list">
+                <!-- 条件列表 -->
+                <div class="condition-container">
                   <template v-for="(condition, cIndex) in sceneForm.conditions" :key="cIndex">
                     <!-- 条件组 -->
                     <div v-if="condition.type === 'group'" class="condition-group">
-                      <div class="group-connector">
-                        <span class="connector-btn" :class="{ active: condition.logic === 'AND' }" @click="condition.logic = condition.logic === 'AND' ? 'OR' : 'AND'">
-                          {{ condition.logic === 'AND' ? '且' : '或' }}
-                        </span>
+                      <div class="group-connector-line"></div>
+                      <div class="group-connector-btn" @click="condition.logic = condition.logic === 'AND' ? 'OR' : 'AND'">
+                        {{ condition.logic === 'AND' ? '且' : '或' }}
                       </div>
                       <div class="group-content">
                         <div class="group-conditions">
                           <template v-for="(cond, gIndex) in condition.conditions" :key="gIndex">
-                            <div class="condition-row">
-                              <span v-if="gIndex > 0" class="inline-connector" @click="toggleGroupConditionLogic(condition, gIndex)">
+                            <div class="condition-row with-line">
+                              <div class="condition-line" v-if="gIndex > 0"></div>
+                              <div class="condition-connector" v-if="gIndex > 0" @click="toggleGroupConditionLogic(condition, gIndex)">
                                 {{ condition.conditionLogics && condition.conditionLogics[gIndex - 1] === 'OR' ? '或' : '且' }}
-                              </span>
+                              </div>
                               <condition-item
                                 :condition="cond"
                                 :field-options="fieldOptions"
@@ -374,10 +375,11 @@
                       </div>
                     </div>
                     <!-- 普通条件 -->
-                    <div v-else class="condition-row">
-                      <span v-if="cIndex > 0" class="inline-connector" @click="toggleConditionLogic(cIndex)">
+                    <div v-else class="condition-row with-line">
+                      <div class="condition-line" v-if="cIndex > 0"></div>
+                      <div class="condition-connector" v-if="cIndex > 0" @click="toggleConditionLogic(cIndex)">
                         {{ sceneForm.conditionLogics && sceneForm.conditionLogics[cIndex - 1] === 'OR' ? '或' : '且' }}
-                      </span>
+                      </div>
                       <condition-item
                         :condition="condition"
                         :field-options="fieldOptions"
@@ -1141,7 +1143,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 .btn-success { background: #67c23a; border-color: #67c23a; color: #fff; }
 .btn-warning { background: #e6a23c; border-color: #e6a23c; color: #fff; }
 .btn-danger { background: #f56c6c; border-color: #f56c6c; color: #fff; }
-.btn-default { background: #fff; color: #333; }
+.btn-default { background: #fff; color: #191919; border-color: #dcdfe6; }
 
 /* 表格 */
 .data-table { width: 100%; border-collapse: collapse; }
@@ -1151,7 +1153,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 
 .col-checkbox { width: 40px; text-align: center; }
 .col-index { width: 50px; text-align: center; }
-.col-action { width: 100px; text-align: center; }
+.col-action { width: 100px; text-align: center; white-space: nowrap; }
 .col-filename { min-width: 180px; }
 .col-type { width: 100px; }
 .col-user { width: 80px; text-align: center; }
@@ -1212,22 +1214,63 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 .rule-config-title { font-weight: 600; }
 .rule-config-body { padding: 16px; }
 
-.condition-list { display: flex; flex-direction: column; gap: 8px; }
-.condition-row { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
-.inline-connector {
+.condition-container { margin-bottom: 12px; }
+
+/* 条件行 - 带连接线 */
+.condition-row.with-line {
+  display: flex;
+  align-items: flex-start;
+  position: relative;
+  margin-bottom: 0;
+}
+
+/* 连接线 */
+.condition-line {
+  position: absolute;
+  left: 16px;
+  top: 0;
+  width: 1px;
+  height: 100%;
+  background: #dcdfe6;
+}
+
+.condition-line::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 24px;
+  height: 1px;
+  background: #dcdfe6;
+}
+
+.condition-connector {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 32px;
   height: 28px;
-  background: #f0f2f5;
+  background: #fff;
+  border: 1px solid #dcdfe6;
   border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
   color: #606266;
   flex-shrink: 0;
+  margin-right: 8px;
 }
-.inline-connector:hover { background: #e6e8eb; }
+
+.condition-connector:hover {
+  background: #f5f7fa;
+}
+
+.condition-connector.active {
+  background: #409eff;
+  border-color: #409eff;
+  color: #fff;
+}
 
 .condition-item {
   display: flex;
@@ -1239,6 +1282,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
   border-radius: 4px;
   position: relative;
   flex: 1;
+  margin-bottom: 0;
 }
 
 .delete-btn {
@@ -1271,28 +1315,55 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 .unit-select { min-width: 60px; }
 .condition-input { width: 100px; }
 
+/* 条件组 */
 .condition-group {
   display: flex;
+  position: relative;
   margin-bottom: 12px;
   border: 1px solid #e4e7ed;
   border-radius: 4px;
   background: #fff;
 }
-.group-connector { display: flex; align-items: center; padding: 0 8px; background: #f5f7fa; border-right: 1px solid #e4e7ed; }
-.connector-btn {
-  padding: 4px 12px;
+
+/* 条件组左侧连接线 */
+.group-connector-line {
+  position: absolute;
+  left: 24px;
+  top: 0;
+  width: 1px;
+  height: 100%;
+  background: #dcdfe6;
+}
+
+.group-connector-btn {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
   background: #fff;
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
+  border-right: 1px solid #e4e7ed;
   cursor: pointer;
   font-size: 12px;
+  color: #606266;
+  border-radius: 4px 0 0 4px;
 }
-.connector-btn.active { background: #409eff; color: #fff; border-color: #409eff; }
-.group-content { flex: 1; padding: 12px; }
+
+.group-connector-btn:hover {
+  background: #f5f7fa;
+}
+
+.group-connector-btn.active {
+  background: #409eff;
+  color: #fff;
+}
+
+.group-content { flex: 1; padding: 12px; padding-left: 16px; }
 .group-conditions { margin-bottom: 8px; }
 .group-actions { display: flex; gap: 16px; margin-top: 8px; }
 
-.condition-actions { display: flex; gap: 16px; margin-top: 8px; }
+.condition-actions { display: flex; gap: 16px; margin-top: 12px; }
 
 .text-btn { color: #409eff; cursor: pointer; font-size: 13px; }
 .text-btn:hover { text-decoration: underline; }

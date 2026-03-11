@@ -60,12 +60,13 @@
         .tree-children { }
 
         /* 按钮 */
-        .btn { padding: 8px 16px; border-radius: 4px; border: 1px solid #dcdfe6; background: #fff; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+        .btn { padding: 8px 16px; border-radius: 4px; border: 1px solid #dcdfe6; background: #fff; cursor: pointer; font-size: 14px; }
         .btn:hover { opacity: 0.9; }
         .btn-primary { background: #409eff; border-color: #409eff; color: #fff; }
         .btn-success { background: #67c23a; border-color: #67c23a; color: #fff; }
         .btn-warning { background: #e6a23c; border-color: #e6a23c; color: #fff; }
         .btn-danger { background: #f56c6c; border-color: #f56c6c; color: #fff; }
+        .btn-default { color: #191919; }
         .btn-sm { padding: 6px 12px; font-size: 13px; }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
@@ -82,11 +83,11 @@
         .data-table tbody tr:hover { background: #f5f7fa; }
         .col-checkbox { width: 40px; text-align: center; }
         .col-index { width: 50px; text-align: center; }
-        .col-action { width: 80px; text-align: center; }
+        .col-action { width: 60px; text-align: center; white-space: nowrap; }
         .col-status { width: 80px; text-align: center; }
         .col-user { width: 80px; text-align: center; }
         .col-time { width: 140px; text-align: center; }
-        .icon-btn { cursor: pointer; margin: 0 4px; font-size: 14px; text-decoration: none; }
+        .icon-btn { cursor: pointer; margin: 0 4px; font-size: 14px; }
         .icon-btn:hover { opacity: 0.7; }
         .link { color: #409eff; cursor: pointer; }
         .link:hover { text-decoration: underline; }
@@ -109,13 +110,12 @@
         /* 底部按钮 */
         .bottom-actions { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; padding: 16px 20px; display: flex; justify-content: center; gap: 16px; box-shadow: 0 -2px 12px 0 rgba(0,0,0,0.1); z-index: 100; }
 
-        /* 消息提示 */
+        /* 消息 */
         .message { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); padding: 12px 24px; border-radius: 4px; z-index: 1000; display: none; }
-        .message.show { display: block; animation: fadeIn 0.3s; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateX(-50%) translateY(-10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+        .message.show { display: block; }
         .message.info { background: #edf2fc; color: #909399; border: 1px solid #dcdfe6; }
-        .message.success { background: #f0f9eb; color: #67c23a; border: 1px solid #e1f3d8; }
-        .message.warning { background: #fdf6ec; color: #e6a23c; border: 1px solid #faecd8; }
+        .message.success { background: #f0f9eb; color: #67c23a; }
+        .message.warning { background: #fdf6ec; color: #e6a23c; }
 
         /* 对话框 */
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
@@ -123,31 +123,38 @@
         .modal { background: #fff; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.2); max-width: 90%; }
         .modal-header { padding: 16px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
         .modal-title { font-weight: 600; font-size: 16px; }
-        .modal-close { cursor: pointer; font-size: 20px; color: #909399; }
+        .modal-close { cursor: pointer; font-size: 24px; color: #909399; line-height: 1; }
         .modal-close:hover { color: #409eff; }
         .modal-body { padding: 20px; max-height: 60vh; overflow-y: auto; }
         .modal-footer { padding: 16px 20px; border-top: 1px solid #eee; display: flex; justify-content: flex-end; gap: 10px; }
 
         /* 条件配置 */
-        .condition-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-        .condition-connector { width: 32px; height: 28px; background: #f0f2f5; border-radius: 4px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 12px; color: #606266; }
-        .condition-connector:hover { background: #e6e8eb; }
+        .condition-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; position: relative; }
+        .condition-line { position: absolute; left: 16px; top: 0; width: 1px; height: 100%; background: #dcdfe6; }
+        .condition-line::before { content: ''; position: absolute; top: 50%; left: 0; width: 24px; height: 1px; background: #dcdfe6; }
+        .condition-connector { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; width: 32px; height: 28px; background: #fff; border: 1px solid #dcdfe6; border-radius: 4px; cursor: pointer; font-size: 12px; color: #606266; flex-shrink: 0; margin-right: 8px; }
+        .condition-connector:hover { background: #f5f7fa; }
+        .condition-connector.active { background: #409eff; border-color: #409eff; color: #fff; }
         .condition-item { display: flex; align-items: center; gap: 8px; padding: 8px; background: #fafafa; border: 1px solid #e4e7ed; border-radius: 4px; position: relative; flex: 1; }
         .condition-item .delete-btn { position: absolute; right: -8px; top: -8px; width: 18px; height: 18px; background: #c0c4cc; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 12px; }
         .condition-item .delete-btn:hover { background: #909399; }
         .condition-item select, .condition-item input { height: 28px; padding: 0 8px; border: 1px solid #dcdfe6; border-radius: 4px; font-size: 13px; }
-        .condition-item select { min-width: 100px; }
-        .condition-item input { width: 80px; }
-        .text-btn { color: #409eff; cursor: pointer; font-size: 13px; margin-right: 16px; }
+        .condition-item select { min-width: 90px; }
+        .condition-item input[type="number"] { width: 80px; }
+        .condition-item input[type="text"] { width: 100px; }
+        .condition-actions { display: flex; gap: 16px; margin-top: 12px; }
+        .text-btn { color: #409eff; cursor: pointer; font-size: 13px; }
         .text-btn:hover { text-decoration: underline; }
         .text-btn.danger { color: #f56c6c; }
 
         /* 条件组 */
-        .condition-group { display: flex; border: 1px solid #e4e7ed; border-radius: 4px; background: #fff; margin-bottom: 12px; }
-        .group-connector { display: flex; align-items: center; padding: 0 8px; background: #f5f7fa; border-right: 1px solid #e4e7ed; }
-        .connector-btn { padding: 4px 12px; background: #fff; border: 1px solid #dcdfe6; border-radius: 4px; cursor: pointer; font-size: 12px; }
-        .connector-btn.active { background: #409eff; color: #fff; border-color: #409eff; }
-        .group-content { flex: 1; padding: 12px; }
+        .condition-group { display: flex; position: relative; border: 1px solid #e4e7ed; border-radius: 4px; background: #fff; margin-bottom: 12px; }
+        .group-connector-line { position: absolute; left: 24px; top: 0; width: 1px; height: 100%; background: #dcdfe6; }
+        .group-connector-btn { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; width: 32px; background: #fff; border-right: 1px solid #e4e7ed; cursor: pointer; font-size: 12px; color: #606266; border-radius: 4px 0 0 4px; }
+        .group-connector-btn:hover { background: #f5f7fa; }
+        .group-connector-btn.active { background: #409eff; color: #fff; }
+        .group-content { flex: 1; padding: 12px; padding-left: 16px; }
+        .group-conditions { margin-bottom: 8px; }
         .group-actions { display: flex; gap: 16px; margin-top: 8px; }
     </style>
 </head>
@@ -214,32 +221,21 @@
                         </div>
                         <div class="tree-dropdown" id="dropdown-authPublishOrg">
                             <div class="tree-node">
-                                <div class="tree-node-content" style="padding-left: 8px;">
-                                    <span class="tree-expand" onclick="toggleExpand(this, event)">▶</span>
-                                    <span class="tree-checkbox" id="check-authPublishOrg-ORG001" onclick="toggleTreeCheck('authPublishOrg', 'ORG001', event)"></span>
-                                    <span class="tree-label" onclick="toggleTreeCheck('authPublishOrg', 'ORG001', event)">总部</span>
+                                <div class="tree-node-content" style="padding-left:8px;">
+                                    <span class="tree-expand expanded">▶</span>
+                                    <span class="tree-checkbox checked"></span>
+                                    <span class="tree-label">总部</span>
                                 </div>
-                                <div class="tree-children" style="display: none;">
-                                    <div class="tree-node">
-                                        <div class="tree-node-content" style="padding-left: 28px;">
-                                            <span class="tree-expand" onclick="toggleExpand(this, event)">▶</span>
-                                            <span class="tree-checkbox" id="check-authPublishOrg-ORG002" onclick="toggleTreeCheck('authPublishOrg', 'ORG002', event)"></span>
-                                            <span class="tree-label" onclick="toggleTreeCheck('authPublishOrg', 'ORG002', event)">华东区</span>
-                                        </div>
-                                        <div class="tree-children" style="display: none;">
-                                            <div class="tree-node-content" style="padding-left: 48px;">
-                                                <span class="tree-expand-placeholder"></span>
-                                                <span class="tree-checkbox" id="check-authPublishOrg-ORG003" onclick="toggleTreeCheck('authPublishOrg', 'ORG003', event)"></span>
-                                                <span class="tree-label" onclick="toggleTreeCheck('authPublishOrg', 'ORG003', event)">上海办事处</span>
-                                            </div>
-                                        </div>
+                                <div class="tree-children" style="display:block;">
+                                    <div class="tree-node-content" style="padding-left:28px;">
+                                        <span class="tree-expand-placeholder"></span>
+                                        <span class="tree-checkbox"></span>
+                                        <span class="tree-label">华东区</span>
                                     </div>
-                                    <div class="tree-node">
-                                        <div class="tree-node-content" style="padding-left: 28px;">
-                                            <span class="tree-expand-placeholder"></span>
-                                            <span class="tree-checkbox" id="check-authPublishOrg-ORG005" onclick="toggleTreeCheck('authPublishOrg', 'ORG005', event)"></span>
-                                            <span class="tree-label" onclick="toggleTreeCheck('authPublishOrg', 'ORG005', event)">华北区</span>
-                                        </div>
+                                    <div class="tree-node-content" style="padding-left:28px;">
+                                        <span class="tree-expand-placeholder"></span>
+                                        <span class="tree-checkbox"></span>
+                                        <span class="tree-label">华北区</span>
                                     </div>
                                 </div>
                             </div>
@@ -248,49 +244,32 @@
                 </div>
                 <div class="form-item">
                     <label class="form-label">授权书发布年份</label>
-                    <div class="select-box" data-select="publishYear">
-                        <div class="select-trigger" onclick="toggleSelect('publishYear')">
-                            <span class="placeholder">请选择年份</span>
-                            <span class="arrow">▼</span>
-                        </div>
-                        <div class="select-dropdown" id="dropdown-publishYear">
-                            <div class="select-option" onclick="selectYear(2024)">2024</div>
-                            <div class="select-option" onclick="selectYear(2023)">2023</div>
-                            <div class="select-option" onclick="selectYear(2022)">2022</div>
-                        </div>
+                    <div class="select-box">
+                        <div class="select-trigger"><span>请选择年份</span><span class="arrow">▼</span></div>
                     </div>
                 </div>
             </div>
             <div class="form-row">
                 <div class="form-item">
                     <label class="form-label">状态</label>
-                    <div class="select-box" data-select="status">
-                        <div class="select-trigger" onclick="toggleSelect('status')">
-                            <span class="placeholder">请选择</span>
-                            <span class="arrow">▼</span>
-                        </div>
-                        <div class="select-dropdown" id="dropdown-status">
-                            <div class="select-option" onclick="selectStatus('')">全部</div>
-                            <div class="select-option" onclick="selectStatus('DRAFT')">草稿</div>
-                            <div class="select-option" onclick="selectStatus('PUBLISHED')">已发布</div>
-                            <div class="select-option" onclick="selectStatus('EXPIRED')">已失效</div>
-                        </div>
+                    <div class="select-box">
+                        <div class="select-trigger"><span class="placeholder">请选择</span><span class="arrow">▼</span></div>
                     </div>
                 </div>
             </div>
             <div class="query-buttons">
                 <button class="btn btn-primary" onclick="handleQuery()">查询</button>
-                <button class="btn" onclick="handleReset()">重置</button>
+                <button class="btn btn-default" onclick="handleReset()">重置</button>
             </div>
         </div>
 
         <!-- 功能按钮区 -->
         <div class="action-bar">
-            <button class="btn btn-primary" onclick="showMessage('新建授权书功能待实现', 'info')">新建授权书</button>
-            <button class="btn" onclick="handleBatchAction('更新')">更新</button>
-            <button class="btn btn-success" onclick="handleBatchAction('生效', true)">生效</button>
-            <button class="btn btn-warning" onclick="handleBatchAction('失效', true)">失效</button>
-            <button class="btn btn-danger" onclick="handleBatchAction('删除', true)">删除</button>
+            <button class="btn btn-primary" onclick="showMessage('新建授权书')">新建授权书</button>
+            <button class="btn btn-default" onclick="checkAndDo('更新')">更新</button>
+            <button class="btn btn-success" onclick="checkAndDo('生效', true)">生效</button>
+            <button class="btn btn-warning" onclick="checkAndDo('失效', true)">失效</button>
+            <button class="btn btn-danger" onclick="checkAndDo('删除', true)">删除</button>
         </div>
 
         <!-- 数据表格区 -->
@@ -360,9 +339,7 @@
             <div class="pagination">
                 <span>共 30 条</span>
                 <select><option>10条/页</option><option>20条/页</option></select>
-                <button disabled>‹</button>
-                <span>1</span>
-                <button>›</button>
+                <button disabled>‹</button><span>1</span><button>›</button>
             </div>
         </div>
     </div>
@@ -375,196 +352,32 @@
         <div class="modal" style="min-width: 400px;">
             <div class="modal-body" id="confirmText">确定要执行此操作吗？</div>
             <div class="modal-footer">
-                <button class="btn" onclick="closeConfirm(false)">取消</button>
+                <button class="btn btn-default" onclick="closeConfirm(false)">取消</button>
                 <button class="btn btn-primary" onclick="closeConfirm(true)">确定</button>
             </div>
         </div>
     </div>
 
     <script>
-        // 选择状态存储
-        const selectedValues = {
-            authTargetLevel: [],
-            applicableRegion: [],
-            authPublishLevel: [],
-            authPublishOrg: [],
-            publishYear: null,
-            status: ''
-        };
-
-        const optionLabels = {
-            ORGANIZATION: '机关',
-            REGIONAL_DEPT: '地区部',
-            REPRESENTATIVE_OFFICE: '代表处',
-            OFFICE: '办事处',
-            EAST: '华东',
-            NORTH: '华北',
-            SOUTH: '华南',
-            WEST: '西部'
-        };
-
-        // 切换下拉显示
         function toggleSelect(name) {
             closeAllDropdowns();
-            const dropdown = document.getElementById('dropdown-' + name);
-            dropdown.classList.toggle('show');
+            document.getElementById('dropdown-' + name).classList.toggle('show');
         }
 
         function toggleTreeSelect(name) {
             closeAllDropdowns();
             const dropdown = document.getElementById('dropdown-' + name);
-            dropdown.classList.toggle('show');
+            if (dropdown) dropdown.classList.toggle('show');
         }
 
         function closeAllDropdowns() {
             document.querySelectorAll('.select-dropdown, .tree-dropdown').forEach(el => el.classList.remove('show'));
         }
 
-        // 多选切换
-        function toggleOption(field, value) {
-            const idx = selectedValues[field].indexOf(value);
-            if (idx > -1) {
-                selectedValues[field].splice(idx, 1);
-            } else {
-                selectedValues[field].push(value);
-            }
-            updateSelectDisplay(field);
-            updateCheckbox(field, value);
-        }
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.select-box')) closeAllDropdowns();
+        });
 
-        function updateSelectDisplay(field) {
-            const trigger = document.querySelector(`[data-select="${field}"] .select-trigger`);
-            const values = selectedValues[field];
-            if (values.length === 0) {
-                trigger.innerHTML = '<span class="placeholder">请选择</span><span class="arrow">▼</span>';
-            } else {
-                const tags = values.slice(0, 2).map(v => `<span class="tag">${optionLabels[v]}<span class="close" onclick="event.stopPropagation(); removeOption('${field}', '${v}')">×</span></span>`).join('');
-                const more = values.length > 2 ? `<span class="tag">+${values.length - 2}</span>` : '';
-                trigger.innerHTML = `<span class="tags">${tags}${more}</span><span class="arrow">▼</span>`;
-            }
-        }
-
-        function updateCheckbox(field, value) {
-            const checkbox = document.getElementById('check-' + field + '-' + value);
-            if (checkbox) {
-                checkbox.classList.toggle('checked', selectedValues[field].includes(value));
-            }
-        }
-
-        function removeOption(field, value) {
-            const idx = selectedValues[field].indexOf(value);
-            if (idx > -1) selectedValues[field].splice(idx, 1);
-            updateSelectDisplay(field);
-            updateCheckbox(field, value);
-        }
-
-        // 树形选择
-        function toggleTreeCheck(field, value, event) {
-            if (event) event.stopPropagation();
-            const idx = selectedValues[field].indexOf(value);
-            if (idx > -1) {
-                selectedValues[field].splice(idx, 1);
-            } else {
-                selectedValues[field].push(value);
-            }
-            updateTreeDisplay(field);
-            const checkbox = document.getElementById('check-' + field + '-' + value);
-            if (checkbox) checkbox.classList.toggle('checked', selectedValues[field].includes(value));
-        }
-
-        function updateTreeDisplay(field) {
-            const trigger = document.querySelector(`[data-select="${field}"] .select-trigger`);
-            const values = selectedValues[field];
-            if (values.length === 0) {
-                trigger.innerHTML = '<span class="placeholder">请选择</span><span class="arrow">▼</span>';
-            } else {
-                const labels = values.map(v => {
-                    if (v === 'ORG001') return '总部';
-                    if (v === 'ORG002') return '华东区';
-                    if (v === 'ORG003') return '上海办事处';
-                    if (v === 'ORG005') return '华北区';
-                    return v;
-                });
-                const tags = labels.slice(0, 2).map((l, i) => `<span class="tag">${l}<span class="close" onclick="event.stopPropagation(); removeTreeOption('${field}', '${values[i]}')">×</span></span>`).join('');
-                const more = values.length > 2 ? `<span class="tag">+${values.length - 2}</span>` : '';
-                trigger.innerHTML = `<span class="tags">${tags}${more}</span><span class="arrow">▼</span>`;
-            }
-        }
-
-        function removeTreeOption(field, value) {
-            const idx = selectedValues[field].indexOf(value);
-            if (idx > -1) selectedValues[field].splice(idx, 1);
-            updateTreeDisplay(field);
-            const checkbox = document.getElementById('check-' + field + '-' + value);
-            if (checkbox) checkbox.classList.remove('checked');
-        }
-
-        function toggleExpand(el, event) {
-            if (event) event.stopPropagation();
-            el.classList.toggle('expanded');
-            const children = el.closest('.tree-node').querySelector('.tree-children');
-            if (children) children.style.display = el.classList.contains('expanded') ? 'block' : 'none';
-        }
-
-        // 年份和状态选择
-        function selectYear(year) {
-            selectedValues.publishYear = year;
-            const trigger = document.querySelector('[data-select="publishYear"] .select-trigger');
-            trigger.innerHTML = `<span>${year}</span><span class="arrow">▼</span>`;
-            closeAllDropdowns();
-        }
-
-        function selectStatus(status) {
-            selectedValues.status = status;
-            const trigger = document.querySelector('[data-select="status"] .select-trigger');
-            const label = status === 'DRAFT' ? '草稿' : status === 'PUBLISHED' ? '已发布' : status === 'EXPIRED' ? '已失效' : '全部';
-            trigger.innerHTML = `<span>${label}</span><span class="arrow">▼</span>`;
-            closeAllDropdowns();
-        }
-
-        // 表格全选
-        function handleSelectAll() {
-            const checked = document.getElementById('selectAll').checked;
-            document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = checked);
-        }
-
-        // 查询和重置
-        function handleQuery() {
-            showMessage('查询成功', 'success');
-        }
-
-        function handleReset() {
-            selectedValues.authTargetLevel = [];
-            selectedValues.applicableRegion = [];
-            selectedValues.authPublishLevel = [];
-            selectedValues.authPublishOrg = [];
-            selectedValues.publishYear = null;
-            selectedValues.status = '';
-            document.getElementById('queryName').value = '';
-            document.querySelectorAll('.select-trigger').forEach(t => {
-                t.innerHTML = '<span class="placeholder">请选择</span><span class="arrow">▼</span>';
-            });
-            document.querySelectorAll('.checkbox, .tree-checkbox').forEach(c => c.classList.remove('checked'));
-            showMessage('已重置', 'info');
-        }
-
-        // 批量操作
-        function handleBatchAction(action, needConfirm = false) {
-            const checked = document.querySelectorAll('.row-checkbox:checked');
-            if (checked.length === 0) {
-                showMessage('请先选择数据', 'warning');
-                return;
-            }
-            if (needConfirm) {
-                showConfirm(`确定要${action}选中的 ${checked.length} 条数据吗？`, () => {
-                    showMessage(`${action}成功`, 'success');
-                });
-            } else {
-                showMessage(`${action}功能待实现`, 'info');
-            }
-        }
-
-        // 消息提示
         function showMessage(text, type = 'info') {
             const msg = document.getElementById('message');
             msg.textContent = text;
@@ -572,26 +385,41 @@
             setTimeout(() => msg.classList.remove('show'), 3000);
         }
 
-        // 确认框
-        let confirmCallback = null;
-        function showConfirm(text, callback) {
+        function showConfirm(text) {
             document.getElementById('confirmText').textContent = text;
             document.getElementById('confirmModal').classList.add('show');
-            confirmCallback = callback;
         }
 
         function closeConfirm(ok) {
             document.getElementById('confirmModal').classList.remove('show');
-            if (ok && confirmCallback) confirmCallback();
-            confirmCallback = null;
         }
 
-        // 点击外部关闭下拉
-        document.addEventListener('click', function(e) {
-            if (!e.target.closest('.select-box')) {
-                closeAllDropdowns();
+        function handleSelectAll() {
+            const checked = document.getElementById('selectAll').checked;
+            document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = checked);
+        }
+
+        function handleQuery() {
+            showMessage('查询成功', 'success');
+        }
+
+        function handleReset() {
+            document.getElementById('queryName').value = '';
+            showMessage('已重置', 'info');
+        }
+
+        function checkAndDo(action, needConfirm = false) {
+            const checked = document.querySelectorAll('.row-checkbox:checked');
+            if (checked.length === 0) {
+                showMessage('请先选择数据', 'warning');
+                return;
             }
-        });
+            if (needConfirm) {
+                showConfirm(`确定要${action}选中的 ${checked.length} 条数据吗？`);
+            } else {
+                showMessage(`${action}功能待实现`, 'info');
+            }
+        }
     </script>
 </body>
 </html>

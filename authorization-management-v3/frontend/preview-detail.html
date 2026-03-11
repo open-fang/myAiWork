@@ -63,6 +63,7 @@
         .btn-success { background: #67c23a; border-color: #67c23a; color: #fff; }
         .btn-warning { background: #e6a23c; border-color: #e6a23c; color: #fff; }
         .btn-danger { background: #f56c6c; border-color: #f56c6c; color: #fff; }
+        .btn-default { color: #191919; }
         .btn-sm { padding: 6px 12px; font-size: 13px; }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
@@ -81,7 +82,7 @@
         .data-table tbody tr:hover { background: #f5f7fa; }
         .col-checkbox { width: 40px; text-align: center; }
         .col-index { width: 50px; text-align: center; }
-        .col-action { width: 100px; text-align: center; }
+        .col-action { width: 100px; text-align: center; white-space: nowrap; }
         .col-user { width: 80px; text-align: center; }
         .col-time { width: 140px; text-align: center; }
         .icon-btn { cursor: pointer; margin: 0 4px; font-size: 14px; }
@@ -120,28 +121,39 @@
         .rule-config { border: 1px solid #e4e7ed; border-radius: 4px; margin-top: 16px; }
         .rule-config-header { padding: 12px 16px; border-bottom: 1px solid #e4e7ed; background: #f5f7fa; font-weight: 600; }
         .rule-config-body { padding: 16px; }
-        .condition-list { margin-bottom: 12px; }
-        .condition-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-        .condition-connector { min-width: 32px; height: 28px; background: #f0f2f5; border-radius: 4px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 12px; color: #606266; }
-        .condition-connector:hover { background: #e6e8eb; }
-        .condition-item { display: flex; align-items: center; gap: 8px; padding: 8px; background: #fafafa; border: 1px solid #e4e7ed; border-radius: 4px; position: relative; flex: 1; }
+        .condition-container { margin-bottom: 12px; }
+
+        /* 条件行 - 带连接线 */
+        .condition-row.with-line { display: flex; align-items: flex-start; position: relative; margin-bottom: 0; }
+
+        /* 连接线 */
+        .condition-line { position: absolute; left: 16px; top: 0; width: 1px; height: 100%; background: #dcdfe6; }
+        .condition-line::before { content: ''; position: absolute; top: 50%; left: 0; width: 24px; height: 1px; background: #dcdfe6; }
+
+        .condition-connector { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; width: 32px; height: 28px; background: #fff; border: 1px solid #dcdfe6; border-radius: 4px; cursor: pointer; font-size: 12px; color: #606266; flex-shrink: 0; margin-right: 8px; }
+        .condition-connector:hover { background: #f5f7fa; }
+        .condition-connector.active { background: #409eff; border-color: #409eff; color: #fff; }
+
+        .condition-item { display: flex; align-items: center; gap: 8px; padding: 8px; background: #fafafa; border: 1px solid #e4e7ed; border-radius: 4px; position: relative; flex: 1; margin-bottom: 0; }
         .condition-item .delete-btn { position: absolute; right: -8px; top: -8px; width: 18px; height: 18px; background: #c0c4cc; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 12px; }
         .condition-item .delete-btn:hover { background: #909399; }
         .condition-item select, .condition-item input { height: 28px; padding: 0 8px; border: 1px solid #dcdfe6; border-radius: 4px; font-size: 13px; }
         .condition-item select { min-width: 90px; }
         .condition-item input[type="number"] { width: 80px; }
         .condition-item input[type="text"] { width: 100px; }
-        .condition-actions { display: flex; gap: 16px; }
+
+        .condition-actions { display: flex; gap: 16px; margin-top: 12px; }
         .text-btn { color: #409eff; cursor: pointer; font-size: 13px; }
         .text-btn:hover { text-decoration: underline; }
         .text-btn.danger { color: #f56c6c; }
 
         /* 条件组 */
-        .condition-group { display: flex; border: 1px solid #e4e7ed; border-radius: 4px; background: #fff; margin-bottom: 12px; }
-        .group-connector { display: flex; align-items: center; padding: 0 8px; background: #f5f7fa; border-right: 1px solid #e4e7ed; }
-        .connector-btn { padding: 4px 12px; background: #fff; border: 1px solid #dcdfe6; border-radius: 4px; cursor: pointer; font-size: 12px; }
-        .connector-btn.active { background: #409eff; color: #fff; border-color: #409eff; }
-        .group-content { flex: 1; padding: 12px; }
+        .condition-group { display: flex; position: relative; border: 1px solid #e4e7ed; border-radius: 4px; background: #fff; margin-bottom: 12px; }
+        .group-connector-line { position: absolute; left: 24px; top: 0; width: 1px; height: 100%; background: #dcdfe6; }
+        .group-connector-btn { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; width: 32px; background: #fff; border-right: 1px solid #e4e7ed; cursor: pointer; font-size: 12px; color: #606266; border-radius: 4px 0 0 4px; }
+        .group-connector-btn:hover { background: #f5f7fa; }
+        .group-connector-btn.active { background: #409eff; color: #fff; }
+        .group-content { flex: 1; padding: 12px; padding-left: 16px; }
         .group-conditions { margin-bottom: 8px; }
         .group-actions { display: flex; gap: 16px; margin-top: 8px; }
     </style>
@@ -159,45 +171,19 @@
                     </div>
                     <div class="form-item">
                         <label class="form-label required">授权发布层级</label>
-                        <div class="select-box" data-select="authPublishLevel">
-                            <div class="select-trigger" onclick="toggleSelect('authPublishLevel')">
+                        <div class="select-box">
+                            <div class="select-trigger">
                                 <span class="tags"><span class="tag">机关</span></span>
                                 <span class="arrow">▼</span>
-                            </div>
-                            <div class="select-dropdown" id="dropdown-authPublishLevel">
-                                <div class="select-option"><span class="checkbox checked"></span>机关</div>
-                                <div class="select-option"><span class="checkbox"></span>地区部</div>
-                                <div class="select-option"><span class="checkbox"></span>代表处</div>
                             </div>
                         </div>
                     </div>
                     <div class="form-item">
                         <label class="form-label required">授权发布组织</label>
-                        <div class="select-box" data-select="authPublishOrg">
-                            <div class="select-trigger" onclick="toggleTreeSelect('authPublishOrg')">
+                        <div class="select-box">
+                            <div class="select-trigger">
                                 <span class="tags"><span class="tag">总部</span></span>
                                 <span class="arrow">▼</span>
-                            </div>
-                            <div class="tree-dropdown" id="dropdown-authPublishOrg">
-                                <div class="tree-node">
-                                    <div class="tree-node-content" style="padding-left:8px;">
-                                        <span class="tree-expand expanded">▶</span>
-                                        <span class="tree-checkbox checked"></span>
-                                        <span class="tree-label">总部</span>
-                                    </div>
-                                    <div class="tree-children" style="display:block;">
-                                        <div class="tree-node-content" style="padding-left:28px;">
-                                            <span class="tree-expand-placeholder"></span>
-                                            <span class="tree-checkbox"></span>
-                                            <span class="tree-label">华东区</span>
-                                        </div>
-                                        <div class="tree-node-content" style="padding-left:28px;">
-                                            <span class="tree-expand-placeholder"></span>
-                                            <span class="tree-checkbox"></span>
-                                            <span class="tree-label">华北区</span>
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -244,9 +230,9 @@
                     <span class="section-label">附件</span>
                     <div class="section-content">
                         <div class="action-bar">
-                            <button class="btn btn-primary btn-sm" onclick="showMessage('上传功能待实现')">📤 上传</button>
-                            <button class="btn btn-sm" onclick="handleAttachmentAction('下载')">📥 下载</button>
-                            <button class="btn btn-danger btn-sm" onclick="handleAttachmentAction('删除')">🗑️ 删除</button>
+                            <button class="btn btn-primary btn-sm" onclick="showMessage('上传功能待实现')">上传</button>
+                            <button class="btn btn-default btn-sm" onclick="handleAttachmentAction('下载')">下载</button>
+                            <button class="btn btn-danger btn-sm" onclick="handleAttachmentAction('删除')">删除</button>
                         </div>
                         <table class="data-table">
                             <thead>
@@ -312,8 +298,8 @@
                     <span class="section-label">授权规则</span>
                     <div class="section-content">
                         <div class="action-bar">
-                            <button class="btn btn-primary btn-sm" onclick="openSceneModal()">➕ 添加场景</button>
-                            <button class="btn btn-danger btn-sm" onclick="handleSceneAction('删除')">🗑️ 删除</button>
+                            <button class="btn btn-primary btn-sm" onclick="openSceneModal()">添加场景</button>
+                            <button class="btn btn-danger btn-sm" onclick="handleSceneAction('删除')">删除</button>
                         </div>
                         <table class="data-table">
                             <thead>
@@ -364,11 +350,11 @@
 
         <!-- 底部按钮 -->
         <div class="bottom-actions">
-            <button class="btn" onclick="showMessage('保存成功', 'success')">💾 保存</button>
-            <button class="btn btn-primary" onclick="showMessage('保存并发布成功', 'success')">🚀 保存并发布</button>
-            <button class="btn btn-success" onclick="showConfirm('确定要发布该授权书吗？')">📢 发布</button>
-            <button class="btn" onclick="showMessage('返回列表页')">✖️ 取消</button>
-            <button class="btn btn-danger" onclick="showConfirm('确定要删除该授权书吗？')">🗑️ 删除</button>
+            <button class="btn btn-default" onclick="showMessage('保存成功', 'success')">保存</button>
+            <button class="btn btn-primary" onclick="showMessage('保存并发布成功', 'success')">保存并发布</button>
+            <button class="btn btn-success" onclick="showConfirm('确定要发布该授权书吗？')">发布</button>
+            <button class="btn btn-default" onclick="showMessage('返回列表页')">取消</button>
+            <button class="btn btn-danger" onclick="showConfirm('确定要删除该授权书吗？')">删除</button>
         </div>
     </div>
 
@@ -388,32 +374,9 @@
                     <div class="form-item">
                         <label class="form-label required">产业</label>
                         <div class="select-box">
-                            <div class="select-trigger" onclick="toggleTreeSelect('industry')">
+                            <div class="select-trigger">
                                 <span class="tags"><span class="tag">ICT</span><span class="tag">消费者</span></span>
                                 <span class="arrow">▼</span>
-                            </div>
-                            <div class="tree-dropdown" id="dropdown-industry">
-                                <div class="tree-node">
-                                    <div class="tree-node-content" style="padding-left:8px;">
-                                        <span class="tree-expand">▶</span>
-                                        <span class="tree-checkbox checked"></span>
-                                        <span class="tree-label">ICT</span>
-                                    </div>
-                                </div>
-                                <div class="tree-node">
-                                    <div class="tree-node-content" style="padding-left:8px;">
-                                        <span class="tree-expand">▶</span>
-                                        <span class="tree-checkbox checked"></span>
-                                        <span class="tree-label">消费者</span>
-                                    </div>
-                                </div>
-                                <div class="tree-node">
-                                    <div class="tree-node-content" style="padding-left:8px;">
-                                        <span class="tree-expand-placeholder"></span>
-                                        <span class="tree-checkbox"></span>
-                                        <span class="tree-label">云计算</span>
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -442,11 +405,11 @@
                 <div class="rule-config">
                     <div class="rule-config-header">规则配置</div>
                     <div class="rule-config-body">
-                        <div class="condition-list">
+                        <div class="condition-container">
                             <!-- 条件1 -->
-                            <div class="condition-row">
+                            <div class="condition-row with-line">
                                 <div class="condition-item">
-                                    <span class="delete-btn" onclick="this.parentElement.remove()">×</span>
+                                    <span class="delete-btn">×</span>
                                     <select><option>金额</option><option>数量</option><option>客户等级</option></select>
                                     <select><option>小于等于</option><option>大于</option><option>等于</option></select>
                                     <select><option>数值</option><option>对比字段</option><option>文本</option></select>
@@ -455,10 +418,11 @@
                                 </div>
                             </div>
                             <!-- 连接符 + 条件2 -->
-                            <div class="condition-row">
-                                <span class="condition-connector" onclick="this.textContent = this.textContent === '且' ? '或' : '且'">且</span>
+                            <div class="condition-row with-line">
+                                <div class="condition-line"></div>
+                                <div class="condition-connector" onclick="this.classList.toggle('active'); this.textContent = this.classList.contains('active') ? '或' : '且'">且</div>
                                 <div class="condition-item">
-                                    <span class="delete-btn" onclick="this.parentElement.remove()">×</span>
+                                    <span class="delete-btn">×</span>
                                     <select><option>客户等级</option><option>金额</option></select>
                                     <select><option>等于</option><option>不等于</option></select>
                                     <select><option>文本</option><option>数值</option></select>
@@ -467,12 +431,11 @@
                             </div>
                             <!-- 条件组 -->
                             <div class="condition-group">
-                                <div class="group-connector">
-                                    <span class="connector-btn active">且</span>
-                                </div>
+                                <div class="group-connector-line"></div>
+                                <div class="group-connector-btn active" onclick="this.classList.toggle('active'); this.textContent = this.classList.contains('active') ? '且' : '或'">且</div>
                                 <div class="group-content">
                                     <div class="group-conditions">
-                                        <div class="condition-row">
+                                        <div class="condition-row with-line">
                                             <div class="condition-item">
                                                 <span class="delete-btn">×</span>
                                                 <select><option>产品类型</option></select>
@@ -481,8 +444,9 @@
                                                 <input type="text" value="服务器">
                                             </div>
                                         </div>
-                                        <div class="condition-row">
-                                            <span class="condition-connector">或</span>
+                                        <div class="condition-row with-line">
+                                            <div class="condition-line"></div>
+                                            <div class="condition-connector active" onclick="this.classList.toggle('active'); this.textContent = this.classList.contains('active') ? '且' : '或'">或</div>
                                             <div class="condition-item">
                                                 <span class="delete-btn">×</span>
                                                 <select><option>产品类型</option></select>
@@ -501,14 +465,14 @@
                             </div>
                         </div>
                         <div class="condition-actions">
-                            <span class="text-btn" onclick="addCondition()">+ 新增条件</span>
-                            <span class="text-btn" onclick="addConditionGroup()">+ 新增子条件组</span>
+                            <span class="text-btn">+ 新增条件</span>
+                            <span class="text-btn">+ 新增子条件组</span>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn" onclick="closeSceneModal()">取消</button>
+                <button class="btn btn-default" onclick="closeSceneModal()">取消</button>
                 <button class="btn btn-primary" onclick="saveScene()">确定</button>
             </div>
         </div>
@@ -522,32 +486,13 @@
         <div class="modal" style="min-width:400px;">
             <div class="modal-body" id="confirmText" style="padding:20px;">确定要执行此操作吗？</div>
             <div class="modal-footer" style="border-top:1px solid #eee;">
-                <button class="btn" onclick="closeConfirmModal()">取消</button>
+                <button class="btn btn-default" onclick="closeConfirmModal()">取消</button>
                 <button class="btn btn-primary" onclick="closeConfirmModal()">确定</button>
             </div>
         </div>
     </div>
 
     <script>
-        function toggleSelect(name) {
-            closeAllDropdowns();
-            document.getElementById('dropdown-' + name).classList.toggle('show');
-        }
-
-        function toggleTreeSelect(name) {
-            closeAllDropdowns();
-            const dropdown = document.getElementById('dropdown-' + name);
-            if (dropdown) dropdown.classList.toggle('show');
-        }
-
-        function closeAllDropdowns() {
-            document.querySelectorAll('.select-dropdown, .tree-dropdown').forEach(el => el.classList.remove('show'));
-        }
-
-        document.addEventListener('click', function(e) {
-            if (!e.target.closest('.select-box')) closeAllDropdowns();
-        });
-
         function showMessage(text, type = 'info') {
             const msg = document.getElementById('message');
             msg.textContent = text;
@@ -583,57 +528,6 @@
         function saveScene() {
             showMessage('场景保存成功', 'success');
             closeSceneModal();
-        }
-
-        function addCondition() {
-            const list = document.querySelector('.condition-list');
-            const row = document.createElement('div');
-            row.className = 'condition-row';
-            row.innerHTML = `
-                <span class="condition-connector" onclick="this.textContent = this.textContent === '且' ? '或' : '且'">且</span>
-                <div class="condition-item">
-                    <span class="delete-btn" onclick="this.closest('.condition-row').remove()">×</span>
-                    <select><option>金额</option><option>数量</option><option>客户等级</option></select>
-                    <select><option>等于</option><option>大于</option><option>小于</option></select>
-                    <select><option>数值</option><option>对比字段</option><option>文本</option></select>
-                    <input type="number" placeholder="数值">
-                    <select><option>万</option><option>亿</option></select>
-                </div>
-            `;
-            const actions = list.querySelector('.condition-actions') || list.querySelector('.condition-group') || list.lastElementChild;
-            list.insertBefore(row, actions);
-        }
-
-        function addConditionGroup() {
-            const list = document.querySelector('.condition-list');
-            const group = document.createElement('div');
-            group.className = 'condition-group';
-            group.innerHTML = `
-                <div class="group-connector">
-                    <span class="connector-btn active" onclick="this.textContent = this.textContent === '且' ? '或' : '且'; this.classList.toggle('active')">且</span>
-                </div>
-                <div class="group-content">
-                    <div class="group-conditions">
-                        <div class="condition-row">
-                            <div class="condition-item">
-                                <span class="delete-btn">×</span>
-                                <select><option>金额</option><option>数量</option></select>
-                                <select><option>等于</option></select>
-                                <select><option>数值</option></select>
-                                <input type="number" placeholder="数值">
-                                <select><option>万</option></select>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="group-actions">
-                        <span class="text-btn" onclick="addGroupCondition(this)">+ 新增条件</span>
-                        <span class="text-btn">+ 新增子条件组</span>
-                        <span class="text-btn danger" onclick="this.closest('.condition-group').remove()">移除条件组</span>
-                    </div>
-                </div>
-            `;
-            const actions = list.querySelector('.condition-actions');
-            list.insertBefore(group, actions);
         }
     </script>
 </body>
