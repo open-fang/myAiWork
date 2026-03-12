@@ -730,11 +730,27 @@ export default {
       try {
         this.loading = true
 
-        // 从URL获取授权书ID
-        const urlParams = new URLSearchParams(window.location.search)
-        const id = urlParams.get('id')
+        // 从URL获取授权书ID（支持hash路由 #/AuthLetterDetail?id=1）
+        let id = null
+        const hash = window.location.hash
+        const queryIndex = hash.indexOf('?')
+        if (queryIndex > -1) {
+          const queryString = hash.substring(queryIndex + 1)
+          const urlParams = new URLSearchParams(queryString)
+          id = urlParams.get('id')
+        }
+
         this.authLetterId = id ? parseInt(id) : null
         this.isNew = !this.authLetterId
+
+        // 如果不是新建模式，必须要有id参数
+        if (!this.isNew && !this.authLetterId) {
+          this.showMessage('缺少授权书ID参数', 'error')
+          setTimeout(() => {
+            window.location.href = '#/AuthLetterList'
+          }, 1500)
+          return
+        }
 
         // 并行加载下拉选项数据
         const [authTargetLevelRes, authPublishLevelRes, applicableRegionRes, orgTreeRes, industryTreeRes, businessScenariosRes, decisionLevelsRes, ruleFieldsRes] = await Promise.all([
@@ -1181,7 +1197,7 @@ export default {
     },
 
     handleCancel() {
-      window.location.href = '/list.html'
+      window.location.href = '#/AuthLetterList'
     },
 
     handleExpire() {
@@ -1202,7 +1218,7 @@ export default {
             if (res.code === 200) {
               this.showMessage('删除成功', 'success')
               setTimeout(() => {
-                window.location.href = '/list.html'
+                window.location.href = '#/AuthLetterList'
               }, 1000)
             } else {
               this.showMessage(res.message || '删除失败', 'error')

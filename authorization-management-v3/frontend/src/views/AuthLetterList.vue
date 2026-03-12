@@ -490,7 +490,7 @@ export default {
       if (this.selectedRows.length === 0) { this.showMessage('请先选择数据', 'warning'); return false }
       return true
     },
-    handleCreate() { window.location.href = '/AuthLetterDetail' },
+    handleCreate() { window.location.href = '#/AuthLetterDetail' },
     handleUpdate() { if (this.checkSelection()) this.showMessage('更新功能待实现', 'info') },
     async handleActivate() {
       if (!this.checkSelection()) return
@@ -537,7 +537,7 @@ export default {
         } catch (error) { this.showMessage('删除失败', 'error') }
       }
     },
-    goToDetail(id) { window.location.href = `/AuthLetterDetail?id=${id}` },
+    goToDetail(id) { window.location.href = `#/AuthLetterDetail?id=${id}` },
     handleClickOutside(event) {
       if (!event.target.closest('.multi-select-wrapper, .tree-select-wrapper, .select-wrapper, .year-select-wrapper')) {
         this.activeDropdown = ''

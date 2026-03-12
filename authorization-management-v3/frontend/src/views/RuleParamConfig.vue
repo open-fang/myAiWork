@@ -227,14 +227,31 @@ export default {
   beforeDestroy() { document.removeEventListener('click', this.handleClickOutside) },
   methods: {
     async loadLookupData() {
-      try { const res = await api.getBusinessObjects(); this.businessObjectOptions = res.data || [] } catch (e) { console.error('加载Lookup数据失败:', e) }
+      try {
+        const res = await api.getBusinessObjects()
+        // 后端返回 {code: 200, message: 'success', data: [{code: 'CONTRACT', name: '合同'}, ...]}
+        if (res.code === 200) {
+          // 转换为统一的 {value, label} 格式供下拉组件使用
+          this.businessObjectOptions = (res.data || []).map(item => ({
+            value: item.code,
+            label: item.name
+          }))
+        }
+      } catch (e) {
+        console.error('加载Lookup数据失败:', e)
+      }
     },
     async loadTableData() {
       this.loading = true
       try {
         const params = { pageNum: this.pagination.pageNum, pageSize: this.pagination.pageSize, name: this.queryParams.name || undefined, nameEn: this.queryParams.nameEn || undefined, status: this.queryParams.status || undefined }
         const res = await api.getRuleParamList(params)
-        this.tableData = res.data?.list || []; this.pagination.total = res.data?.total || 0
+        if (res.code === 200) {
+          this.tableData = res.data?.list || []
+          this.pagination.total = res.data?.total || 0
+        } else {
+          this.showMessage(res.message || '加载数据失败', 'error')
+        }
       } catch (e) { console.error('加载数据失败:', e); this.showMessage('加载数据失败', 'error') } finally { this.loading = false }
     },
     toggleSelect(name) { this.activeDropdown = this.activeDropdown === name ? '' : name },
@@ -257,14 +274,30 @@ export default {
       if (!this.checkSelection()) return
       const confirmed = await this.showConfirm(`确定要将选中的 ${this.selectedRows.length} 条数据设为生效吗？`)
       if (confirmed) {
-        try { await api.batchActivate(this.selectedRows); this.showMessage('操作成功', 'success'); this.selectedRows = []; this.selectAll = false; this.loadTableData() } catch (e) { this.showMessage('操作失败', 'error') }
+        try {
+          const res = await api.batchActivate(this.selectedRows)
+          if (res.code === 200) {
+            this.showMessage('操作成功', 'success')
+            this.selectedRows = []; this.selectAll = false; this.loadTableData()
+          } else {
+            this.showMessage(res.message || '操作失败', 'error')
+          }
+        } catch (e) { this.showMessage('操作失败', 'error') }
       }
     },
     async handleDeactivate() {
       if (!this.checkSelection()) return
       const confirmed = await this.showConfirm(`确定要将选中的 ${this.selectedRows.length} 条数据设为失效吗？`)
       if (confirmed) {
-        try { await api.batchDeactivate(this.selectedRows); this.showMessage('操作成功', 'success'); this.selectedRows = []; this.selectAll = false; this.loadTableData() } catch (e) { this.showMessage('操作失败', 'error') }
+        try {
+          const res = await api.batchDeactivate(this.selectedRows)
+          if (res.code === 200) {
+            this.showMessage('操作成功', 'success')
+            this.selectedRows = []; this.selectAll = false; this.loadTableData()
+          } else {
+            this.showMessage(res.message || '操作失败', 'error')
+          }
+        } catch (e) { this.showMessage('操作失败', 'error') }
       }
     },
     openDialog(row = null) {
@@ -287,8 +320,19 @@ export default {
       this.saving = true
       try {
         const data = { name: this.formData.name, nameEn: this.formData.nameEn, status: this.formData.isActive ? 'ACTIVE' : 'INACTIVE', dataType: this.formData.dataType, businessMappings: this.formData.businessRows.filter(r => r.businessObject || r.valueLogic) }
-        if (this.editingRow) await api.updateRuleParam(this.editingRow.id, data); else await api.createRuleParam(data)
-        this.showMessage(this.editingRow ? '编辑成功' : '新建成功', 'success'); this.closeDialog(); this.loadTableData()
+        let res
+        if (this.editingRow) {
+          res = await api.updateRuleParam(this.editingRow.id, data)
+        } else {
+          res = await api.createRuleParam(data)
+        }
+        if (res.code === 200) {
+          this.showMessage(this.editingRow ? '编辑成功' : '新建成功', 'success')
+          this.closeDialog()
+          this.loadTableData()
+        } else {
+          this.showMessage(res.message || '保存失败', 'error')
+        }
       } catch (e) { this.showMessage('保存失败', 'error') } finally { this.saving = false }
     },
     showMessage(text, type = 'info') { this.message = { show: true, type, text }; setTimeout(() => { this.message.show = false }, 3000) },
