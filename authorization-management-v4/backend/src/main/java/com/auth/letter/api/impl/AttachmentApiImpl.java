@@ -6,9 +6,11 @@ import com.auth.letter.service.AttachmentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import javax.ws.rs.Path;
 import javax.ws.rs.core.Response;
 
 @Component
+@Path("/api/attachments")
 @RequiredArgsConstructor
 public class AttachmentApiImpl implements iAttachmentApi {
 

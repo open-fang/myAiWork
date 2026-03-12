@@ -6,10 +6,12 @@ import com.auth.letter.service.RuleParamService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import javax.ws.rs.Path;
 import javax.ws.rs.core.Response;
 import java.util.List;
 
 @Component
+@Path("/api/rule-params")
 @RequiredArgsConstructor
 public class RuleParamApiImpl implements iRuleParamApi {
 

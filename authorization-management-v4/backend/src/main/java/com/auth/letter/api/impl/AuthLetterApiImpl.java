@@ -6,10 +6,12 @@ import com.auth.letter.service.AuthLetterService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import javax.ws.rs.Path;
 import javax.ws.rs.core.Response;
 import java.util.List;
 
 @Component
+@Path("/api/auth-letters")
 @RequiredArgsConstructor
 public class AuthLetterApiImpl implements iAuthLetterApi {
 

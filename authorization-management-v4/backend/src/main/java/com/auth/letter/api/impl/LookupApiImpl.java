@@ -7,10 +7,12 @@ import com.auth.letter.service.LookupValue;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import javax.ws.rs.Path;
 import javax.ws.rs.core.Response;
 import java.util.List;
 
 @Component
+@Path("/api/lookup")
 @RequiredArgsConstructor
 public class LookupApiImpl implements iLookupApi {
 

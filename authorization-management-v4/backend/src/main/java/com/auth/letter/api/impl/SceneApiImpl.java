@@ -6,9 +6,11 @@ import com.auth.letter.service.SceneService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import javax.ws.rs.Path;
 import javax.ws.rs.core.Response;
 
 @Component
+@Path("/api/scenes")
 @RequiredArgsConstructor
 public class SceneApiImpl implements iSceneApi {
 
