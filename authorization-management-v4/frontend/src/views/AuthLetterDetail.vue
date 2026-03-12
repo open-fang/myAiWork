@@ -648,7 +648,7 @@ export default {
           businessScenario: row ? row.businessScenario : '',
           decisionLevel: row ? row.decisionLevel : '',
           ruleDetail: row ? row.ruleDetail : '',
-          conditions: row && row.conditions ? JSON.parse(JSON.stringify(row.conditions)) : []
+          conditions: row && row.conditionGroups ? JSON.parse(JSON.stringify(row.conditionGroups)) : []
         }
       }
     },

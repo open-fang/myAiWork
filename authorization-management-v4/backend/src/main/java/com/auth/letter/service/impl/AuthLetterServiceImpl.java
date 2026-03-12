@@ -300,6 +300,15 @@ public class AuthLetterServiceImpl implements AuthLetterService {
         }
     }
 
+    private Object parseConditionGroups(String json) {
+        if (!StringUtils.hasText(json)) return null;
+        try {
+            return objectMapper.readValue(json, Object.class);
+        } catch (JsonProcessingException e) {
+            return null;
+        }
+    }
+
     private String formatDateTime(LocalDateTime dateTime) {
         if (dateTime == null) return null;
         return dateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
@@ -390,6 +399,8 @@ public class AuthLetterServiceImpl implements AuthLetterService {
         vo.setBusinessScenario(scene.getBusinessScenario());
         vo.setDecisionLevel(scene.getDecisionLevel());
         vo.setRuleDetail(scene.getRuleDetail());
+        // 解析conditionGroups JSON为对象
+        vo.setConditionGroups(parseConditionGroups(scene.getConditionGroups()));
         vo.setCreatedBy(scene.getCreatedBy());
         vo.setCreatedAt(formatDateTime(scene.getCreatedAt()));
         vo.setUpdatedBy(scene.getUpdatedBy());
