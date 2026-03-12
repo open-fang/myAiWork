@@ -38,4 +38,7 @@ public interface AuthSceneMapper {
             "DELETE FROM auth_scene WHERE id IN <foreach item='id' collection='ids' open='(' separator=',' close=')'>#{id}</foreach>" +
             "</script>")
     int batchDelete(@Param("ids") List<Long> ids);
+
+    @Delete("DELETE FROM auth_scene WHERE auth_letter_id = #{authLetterId}")
+    int deleteByAuthLetterId(@Param("authLetterId") Long authLetterId);
 }

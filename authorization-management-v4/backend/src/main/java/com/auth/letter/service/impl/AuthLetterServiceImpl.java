@@ -123,6 +123,25 @@ public class AuthLetterServiceImpl implements AuthLetterService {
         entity.setUpdatedBy("system");
         authLetterMapper.update(entity);
 
+        // 删除旧场景，插入新场景
+        authSceneMapper.deleteByAuthLetterId(id);
+        if (dto.getScenes() != null && !dto.getScenes().isEmpty()) {
+            int orderIndex = 0;
+            for (SceneDTO sceneDTO : dto.getScenes()) {
+                AuthScene scene = new AuthScene();
+                scene.setAuthLetterId(id);
+                scene.setSceneName(sceneDTO.getSceneName());
+                scene.setIndustry(toJsonArray(sceneDTO.getIndustry()));
+                scene.setBusinessScenario(sceneDTO.getBusinessScenario());
+                scene.setDecisionLevel(sceneDTO.getDecisionLevel());
+                scene.setRuleDetail(sceneDTO.getRuleDetail());
+                scene.setConditionGroups(toJson(sceneDTO.getConditionGroups()));
+                scene.setOrderIndex(orderIndex++);
+                scene.setCreatedBy("system");
+                authSceneMapper.insert(scene);
+            }
+        }
+
         // 记录日志
         saveOperationLog(id, "UPDATE", "system");
     }

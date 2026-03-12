@@ -179,10 +179,10 @@
                 <span class="icon-btn" @click="deleteScene(row.id)" title="删除">🗑️</span>
               </td>
               <td class="col-name">{{ row.sceneName }}</td>
-              <td class="col-name">{{ row.industryText || '-' }}</td>
-              <td class="col-name">{{ row.businessScenario || '-' }}</td>
+              <td class="col-name">{{ row.industryText || getIndustryText(row.industry) }}</td>
+              <td class="col-name">{{ getBusinessScenarioText(row.businessScenario) }}</td>
               <td class="col-name">{{ row.ruleDetail || '-' }}</td>
-              <td class="col-name">{{ row.decisionLevel || '-' }}</td>
+              <td class="col-name">{{ getDecisionLevelText(row.decisionLevel) }}</td>
               <td class="col-user">{{ row.createdBy || '-' }}</td>
               <td class="col-time">{{ row.createdAt || '-' }}</td>
             </tr>
@@ -256,16 +256,16 @@
               </div>
               <div class="form-item">
                 <label class="form-label required">产业</label>
-                <div class="tree-select-wrapper">
-                  <div class="tree-select-trigger" @click="toggleSelect('industry')">
+                <div class="multi-select-wrapper">
+                  <div class="multi-select-trigger" @click="toggleSelect('industry')">
                     <span class="selected-tags" v-if="sceneModal.data.industry.length > 0">
-                      <span class="tag" v-for="(item, index) in sceneModal.data.industry.slice(0, 2)" :key="index">{{ item }}</span>
+                      <span class="tag" v-for="(item, index) in getIndustryLabels(sceneModal.data.industry)" :key="index">{{ item }}</span>
                       <span class="tag" v-if="sceneModal.data.industry.length > 2">+{{ sceneModal.data.industry.length - 2 }}</span>
                     </span>
                     <span class="placeholder" v-else>请选择</span>
                     <span class="arrow">▼</span>
                   </div>
-                  <div class="tree-select-dropdown" v-show="activeDropdown === 'industry'">
+                  <div class="multi-select-dropdown" v-show="activeDropdown === 'industry'">
                     <div class="select-option" v-for="item in industryOptions" :key="item.code" @click="toggleIndustrySelect(item.code)">
                       <span class="checkbox" :class="{ checked: sceneModal.data.industry.includes(item.code) }"></span>
                       <span>{{ item.name }}</span>
@@ -277,7 +277,7 @@
                 <label class="form-label required">业务场景</label>
                 <div class="select-wrapper">
                   <div class="select-trigger" @click="toggleSelect('businessScenario')">
-                    <span>{{ sceneModal.data.businessScenario || '请选择' }}</span>
+                    <span>{{ getBusinessScenarioText(sceneModal.data.businessScenario) || '请选择' }}</span>
                     <span class="arrow">▼</span>
                   </div>
                   <div class="select-dropdown" v-show="activeDropdown === 'businessScenario'">
@@ -291,7 +291,7 @@
                 <label class="form-label required">决策层级</label>
                 <div class="select-wrapper">
                   <div class="select-trigger" @click="toggleSelect('decisionLevel')">
-                    <span>{{ sceneModal.data.decisionLevel || '请选择' }}</span>
+                    <span>{{ getDecisionLevelText(sceneModal.data.decisionLevel) || '请选择' }}</span>
                     <span class="arrow">▼</span>
                   </div>
                   <div class="select-dropdown" v-show="activeDropdown === 'decisionLevel'">
@@ -313,14 +313,66 @@
               </div>
               <div class="rule-config-body">
                 <div v-if="sceneModal.data.conditions.length === 0" class="empty-rule">暂无规则条件</div>
-                <condition-item
-                  v-for="(cond, index) in sceneModal.data.conditions"
-                  :key="index"
-                  :condition="cond"
-                  :rule-fields="ruleFieldOptions"
-                  @remove="removeCondition(index)"
-                  @change="updateCondition(index, $event)"
-                />
+                <div v-else>
+                  <div v-for="(cond, index) in sceneModal.data.conditions" :key="index" class="condition-item">
+                    <!-- 单个条件 -->
+                    <div v-if="cond.type === 'condition'" class="condition-row">
+                      <select class="condition-select" v-model="cond.field" @change="onConditionFieldChange(index)">
+                        <option value="">请选择规则字段</option>
+                        <option v-for="f in ruleFieldOptions" :key="f.id" :value="f.nameEn">{{ f.name }}</option>
+                      </select>
+                      <select class="condition-select small" v-model="cond.operator">
+                        <option value="">运算符</option>
+                        <option v-for="op in operatorOptions" :key="op.value" :value="op.value">{{ op.label }}</option>
+                      </select>
+                      <select class="condition-select small" v-model="cond.compareType" @change="cond.compareValue = ''">
+                        <option value="value">数值</option>
+                        <option value="text">文本</option>
+                        <option value="field">对比字段</option>
+                      </select>
+                      <input v-if="cond.compareType === 'value' || cond.compareType === 'text'" type="text" class="condition-input" v-model="cond.compareValue" placeholder="请输入值" />
+                      <select v-else class="condition-select" v-model="cond.compareValue">
+                        <option value="">请选择字段</option>
+                        <option v-for="f in ruleFieldOptions" :key="f.id" :value="f.nameEn">{{ f.name }}</option>
+                      </select>
+                      <span class="condition-remove" @click="removeCondition(index)">✕</span>
+                    </div>
+                    <!-- 条件组 -->
+                    <div v-else-if="cond.type === 'group'" class="condition-group">
+                      <div class="condition-group-header">
+                        <span class="logic-toggle" @click="toggleLogic(index)">{{ cond.logic }}</span>
+                        <span class="condition-remove" @click="removeCondition(index)">✕ 删除组</span>
+                      </div>
+                      <div class="condition-group-body">
+                        <div v-if="cond.conditions.length === 0" class="empty-group">暂无条件</div>
+                        <div v-for="(subCond, subIndex) in cond.conditions" :key="subIndex" class="condition-row">
+                          <select class="condition-select" v-model="subCond.field">
+                            <option value="">请选择规则字段</option>
+                            <option v-for="f in ruleFieldOptions" :key="f.id" :value="f.nameEn">{{ f.name }}</option>
+                          </select>
+                          <select class="condition-select small" v-model="subCond.operator">
+                            <option value="">运算符</option>
+                            <option v-for="op in operatorOptions" :key="op.value" :value="op.value">{{ op.label }}</option>
+                          </select>
+                          <select class="condition-select small" v-model="subCond.compareType">
+                            <option value="value">数值</option>
+                            <option value="text">文本</option>
+                            <option value="field">对比字段</option>
+                          </select>
+                          <input v-if="subCond.compareType === 'value' || subCond.compareType === 'text'" type="text" class="condition-input" v-model="subCond.compareValue" placeholder="请输入值" />
+                          <select v-else class="condition-select" v-model="subCond.compareValue">
+                            <option value="">请选择字段</option>
+                            <option v-for="f in ruleFieldOptions" :key="f.id" :value="f.nameEn">{{ f.name }}</option>
+                          </select>
+                          <span class="condition-remove" @click="removeSubCondition(index, subIndex)">✕</span>
+                        </div>
+                      </div>
+                      <div class="condition-group-footer">
+                        <span class="text-btn" @click="addSubCondition(index)">+ 添加条件</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -421,16 +473,28 @@ export default {
       industryOptions: [
         { code: 'IT', name: 'IT产业' },
         { code: 'FINANCE', name: '金融产业' },
-        { code: 'MANUFACTURE', name: '制造产业' }
+        { code: 'MANUFACTURE', name: '制造产业' },
+        { code: 'ENERGY', name: '能源产业' },
+        { code: 'SERVICE', name: '服务业' }
       ],
       businessScenarioOptions: [
-        { code: 'SCENARIO1', name: '业务场景1' },
-        { code: 'SCENARIO2', name: '业务场景2' }
+        { code: 'SCENARIO1', name: '合同审批' },
+        { code: 'SCENARIO2', name: '采购审批' },
+        { code: 'SCENARIO3', name: '付款审批' },
+        { code: 'SCENARIO4', name: '报销审批' }
       ],
       decisionLevelOptions: [
         { code: 'LEVEL1', name: '一级决策' },
         { code: 'LEVEL2', name: '二级决策' },
         { code: 'LEVEL3', name: '三级决策' }
+      ],
+      operatorOptions: [
+        { value: '>', label: '>' },
+        { value: '<', label: '<' },
+        { value: '=', label: '=' },
+        { value: '>=', label: '>=' },
+        { value: '<=', label: '<=' },
+        { value: '!=', label: '!=' }
       ],
       ruleFieldOptions: [],
       sceneModal: {
@@ -527,6 +591,28 @@ export default {
       const item = this.applicableRegionOptions.find(o => o.code === code)
       return item ? item.name : code
     },
+    getIndustryText(codes) {
+      if (!codes || codes.length === 0) return '-'
+      return codes.map(c => {
+        const item = this.industryOptions.find(o => o.code === c)
+        return item ? item.name : c
+      }).join('、')
+    },
+    getIndustryLabels(codes) {
+      if (!codes || codes.length === 0) return []
+      return codes.map(c => {
+        const item = this.industryOptions.find(o => o.code === c)
+        return item ? item.name : c
+      })
+    },
+    getBusinessScenarioText(code) {
+      const item = this.businessScenarioOptions.find(o => o.code === code)
+      return item ? item.name : (code || '-')
+    },
+    getDecisionLevelText(code) {
+      const item = this.decisionLevelOptions.find(o => o.code === code)
+      return item ? item.name : (code || '-')
+    },
     toggleOrgTreeNode(node) {
       const idx = this.formData.authPublishOrg.indexOf(node.code)
       if (idx > -1) this.formData.authPublishOrg.splice(idx, 1)
@@ -545,7 +631,11 @@ export default {
     handleSelectAllScene() { this.selectedScenes = this.selectAllScene ? this.scenes.map(s => s.id) : [] },
     handleUpload() { this.showMessage('上传功能待实现', 'info') },
     handleDownloadAttachment() { this.showMessage('下载功能待实现', 'info') },
-    handleDeleteAttachment() { this.selectedAttachments.forEach(id => { this.attachments = this.attachments.filter(a => a.id !== id) }); this.selectedAttachments = []; this.selectAllAttachment = false },
+    handleDeleteAttachment() {
+      this.selectedAttachments.forEach(id => { this.attachments = this.attachments.filter(a => a.id !== id) })
+      this.selectedAttachments = []
+      this.selectAllAttachment = false
+    },
     downloadFile(row) { this.showMessage('下载: ' + row.docName, 'info') },
     openSceneModal(row = null) {
       this.sceneModal = {
@@ -558,7 +648,7 @@ export default {
           businessScenario: row ? row.businessScenario : '',
           decisionLevel: row ? row.decisionLevel : '',
           ruleDetail: row ? row.ruleDetail : '',
-          conditions: row ? (row.conditions || []) : []
+          conditions: row && row.conditions ? JSON.parse(JSON.stringify(row.conditions)) : []
         }
       }
     },
@@ -569,21 +659,57 @@ export default {
     },
     selectBusinessScenario(code) { this.sceneModal.data.businessScenario = code; this.activeDropdown = '' },
     selectDecisionLevel(code) { this.sceneModal.data.decisionLevel = code; this.activeDropdown = '' },
-    addCondition() { this.sceneModal.data.conditions.push({ type: 'condition', field: '', operator: '', compareType: 'value', compareValue: '' }) },
-    addConditionGroup() { this.sceneModal.data.conditions.push({ type: 'group', logic: 'AND', conditions: [] }) },
-    removeCondition(index) { this.sceneModal.data.conditions.splice(index, 1) },
-    updateCondition(index, data) { this.sceneModal.data.conditions[index] = { ...this.sceneModal.data.conditions[index], ...data } },
+    addCondition() {
+      this.sceneModal.data.conditions.push({
+        type: 'condition',
+        field: '',
+        operator: '',
+        compareType: 'value',
+        compareValue: ''
+      })
+    },
+    addConditionGroup() {
+      this.sceneModal.data.conditions.push({
+        type: 'group',
+        logic: 'AND',
+        conditions: []
+      })
+    },
+    addSubCondition(groupIndex) {
+      this.sceneModal.data.conditions[groupIndex].conditions.push({
+        field: '',
+        operator: '',
+        compareType: 'value',
+        compareValue: ''
+      })
+    },
+    removeCondition(index) {
+      this.sceneModal.data.conditions.splice(index, 1)
+    },
+    removeSubCondition(groupIndex, subIndex) {
+      this.sceneModal.data.conditions[groupIndex].conditions.splice(subIndex, 1)
+    },
+    toggleLogic(index) {
+      this.sceneModal.data.conditions[index].logic =
+        this.sceneModal.data.conditions[index].logic === 'AND' ? 'OR' : 'AND'
+    },
+    onConditionFieldChange(index) {
+      // 字段变更时的处理
+    },
     saveScene() {
-      if (!this.sceneModal.data.sceneName) { this.showMessage('请输入场景名称', 'warning'); return }
+      if (!this.sceneModal.data.sceneName) {
+        this.showMessage('请输入场景名称', 'warning')
+        return
+      }
       const sceneData = {
         id: this.sceneModal.editId || Date.now(),
         sceneName: this.sceneModal.data.sceneName,
-        industry: this.sceneModal.data.industry,
-        industryText: this.sceneModal.data.industry.join('、'),
+        industry: [...this.sceneModal.data.industry],
+        industryText: this.getIndustryText(this.sceneModal.data.industry),
         businessScenario: this.sceneModal.data.businessScenario,
         decisionLevel: this.sceneModal.data.decisionLevel,
         ruleDetail: this.sceneModal.data.ruleDetail,
-        conditions: this.sceneModal.data.conditions,
+        conditions: JSON.parse(JSON.stringify(this.sceneModal.data.conditions)),
         createdBy: 'system',
         createdAt: new Date().toLocaleString()
       }
@@ -594,36 +720,73 @@ export default {
         this.scenes.push(sceneData)
       }
       this.sceneModal.visible = false
+      this.showMessage('场景已添加，请点击"保存"按钮保存授权书', 'success')
     },
-    deleteScene(id) { this.scenes = this.scenes.filter(s => s.id !== id) },
-    handleDeleteScene() { this.selectedScenes.forEach(id => this.deleteScene(id)); this.selectedScenes = []; this.selectAllScene = false },
+    deleteScene(id) {
+      this.scenes = this.scenes.filter(s => s.id !== id)
+    },
+    handleDeleteScene() {
+      this.selectedScenes.forEach(id => this.deleteScene(id))
+      this.selectedScenes = []
+      this.selectAllScene = false
+    },
     async handleSave() {
-      if (!this.formData.name) { this.showMessage('请输入授权书名称', 'warning'); return }
+      if (!this.formData.name) {
+        this.showMessage('请输入授权书名称', 'warning')
+        return
+      }
       try {
+        // 准备完整数据，包含场景
+        const saveData = {
+          ...this.formData,
+          scenes: this.scenes.map(s => ({
+            id: typeof s.id === 'number' && s.id < 10000 ? null : s.id, // 新建的用null
+            sceneName: s.sceneName,
+            industry: s.industry,
+            businessScenario: s.businessScenario,
+            decisionLevel: s.decisionLevel,
+            ruleDetail: s.ruleDetail,
+            conditionGroups: s.conditions
+          }))
+        }
+
         let res
         if (this.authLetterId) {
-          res = await api.updateAuthLetter(this.authLetterId, this.formData)
+          res = await api.updateAuthLetter(this.authLetterId, saveData)
         } else {
-          res = await api.createAuthLetter(this.formData)
+          res = await api.createAuthLetter(saveData)
           if (res.code === 200 && res.data) this.authLetterId = res.data
         }
-        if (res.code === 200) this.showMessage('保存成功', 'success')
-        else this.showMessage(res.message || '保存失败', 'error')
-      } catch (e) { this.showMessage('保存失败', 'error') }
+        if (res.code === 200) {
+          this.showMessage('保存成功', 'success')
+        } else {
+          this.showMessage(res.message || '保存失败', 'error')
+        }
+      } catch (e) {
+        console.error('保存失败:', e)
+        this.showMessage('保存失败', 'error')
+      }
     },
     async handleSaveAndPublish() {
       await this.handleSave()
       if (this.authLetterId) await this.handlePublish()
     },
     async handlePublish() {
-      if (!this.authLetterId) { this.showMessage('请先保存', 'warning'); return }
+      if (!this.authLetterId) {
+        this.showMessage('请先保存', 'warning')
+        return
+      }
       try {
         const res = await api.publishAuthLetter(this.authLetterId)
         if (res.code === 200) {
           this.showMessage('发布成功', 'success')
           this.formData.status = 'PUBLISHED'
-        } else this.showMessage(res.message || '发布失败', 'error')
-      } catch (e) { this.showMessage('发布失败', 'error') }
+        } else {
+          this.showMessage(res.message || '发布失败', 'error')
+        }
+      } catch (e) {
+        this.showMessage('发布失败', 'error')
+      }
     },
     async handleExpire() {
       try {
@@ -631,8 +794,12 @@ export default {
         if (res.code === 200) {
           this.showMessage('操作成功', 'success')
           this.formData.status = 'EXPIRED'
-        } else this.showMessage(res.message || '操作失败', 'error')
-      } catch (e) { this.showMessage('操作失败', 'error') }
+        } else {
+          this.showMessage(res.message || '操作失败', 'error')
+        }
+      } catch (e) {
+        this.showMessage('操作失败', 'error')
+      }
     },
     async handleDelete() {
       try {
@@ -640,8 +807,12 @@ export default {
         if (res.code === 200) {
           this.showMessage('删除成功', 'success')
           setTimeout(() => { window.location.href = '#/AuthLetterList' }, 1000)
-        } else this.showMessage(res.message || '删除失败', 'error')
-      } catch (e) { this.showMessage('删除失败', 'error') }
+        } else {
+          this.showMessage(res.message || '删除失败', 'error')
+        }
+      } catch (e) {
+        this.showMessage('删除失败', 'error')
+      }
     },
     handleCancel() { window.location.href = '#/AuthLetterList' },
     handleBack() { window.location.href = '#/AuthLetterList' },
@@ -724,8 +895,7 @@ export default {
 .link:hover { text-decoration: underline; }
 .bottom-buttons { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; padding: 16px 20px; box-shadow: 0 -2px 8px rgba(0,0,0,0.1); display: flex; justify-content: center; gap: 16px; z-index: 100; }
 .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-.modal-dialog { background: #fff; border-radius: 8px; width: 90%; max-width: 800px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; }
-.modal-dialog.large { max-width: 900px; }
+.modal-dialog { background: #fff; border-radius: 8px; width: 90%; max-width: 900px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; }
 .modal-header { padding: 16px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
 .modal-title { font-weight: 600; font-size: 16px; }
 .modal-close { font-size: 20px; color: #909399; cursor: pointer; }
@@ -733,13 +903,27 @@ export default {
 .modal-body { padding: 20px; overflow-y: auto; flex: 1; }
 .modal-footer { padding: 16px 20px; border-top: 1px solid #eee; display: flex; justify-content: flex-end; gap: 10px; }
 .modal-form { display: flex; flex-direction: column; gap: 16px; }
-.rule-config-section { border: 1px solid #dcdfe6; border-radius: 4px; }
+.rule-config-section { border: 1px solid #dcdfe6; border-radius: 4px; margin-top: 8px; }
 .rule-config-header { padding: 12px 16px; background: #f5f7fa; display: flex; align-items: center; gap: 16px; }
 .rule-config-header span:first-child { font-weight: 600; }
 .text-btn { color: #409eff; cursor: pointer; font-size: 13px; }
 .text-btn:hover { text-decoration: underline; }
 .rule-config-body { padding: 16px; min-height: 60px; }
 .empty-rule { color: #909399; text-align: center; padding: 20px; }
+.empty-group { color: #909399; text-align: center; padding: 10px; font-size: 13px; }
+.condition-item { margin-bottom: 12px; }
+.condition-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.condition-select { height: 32px; padding: 0 8px; border: 1px solid #dcdfe6; border-radius: 4px; min-width: 100px; }
+.condition-select.small { min-width: 70px; }
+.condition-input { height: 32px; padding: 0 8px; border: 1px solid #dcdfe6; border-radius: 4px; flex: 1; min-width: 120px; }
+.condition-remove { color: #f56c6c; cursor: pointer; font-size: 14px; padding: 4px; }
+.condition-remove:hover { opacity: 0.7; }
+.condition-group { border: 1px solid #e4e7ed; border-radius: 4px; padding: 12px; background: #fafafa; }
+.condition-group-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.logic-toggle { background: #409eff; color: #fff; padding: 2px 8px; border-radius: 3px; cursor: pointer; font-size: 12px; }
+.logic-toggle:hover { opacity: 0.8; }
+.condition-group-body { padding-left: 20px; }
+.condition-group-footer { padding-top: 8px; border-top: 1px dashed #e4e7ed; margin-top: 8px; }
 .message-box { position: fixed; top: 70px; left: 50%; transform: translateX(-50%); padding: 12px 24px; border-radius: 4px; z-index: 1001; }
 .message-info { background: #edf2fc; color: #909399; }
 .message-success { background: #f0f9eb; color: #67c23a; }
