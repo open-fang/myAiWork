@@ -326,11 +326,13 @@ export default {
           request.get('/lookup/AUTH_PUBLISH_LEVEL'),
           request.get('/lookup/AUTH_PUBLISH_ORG')
         ])
+        // 扁平列表类型（无层级结构）
         this.authTargetLevelOptions = targetLevel.code === 200 ? this.transformLookupData(targetLevel.data) : []
-        this.applicableRegionOptions = region.code === 200 ? this.transformLookupData(region.data) : []
-        this.applicableRegionTree = this.buildTree(this.applicableRegionOptions)
         this.authPublishLevelOptions = publishLevel.code === 200 ? this.transformLookupData(publishLevel.data) : []
-        this.orgTreeData = orgTree.code === 200 ? this.buildTree(this.transformLookupData(orgTree.data)) : []
+        // 树形结构类型（有层级结构）- API已返回树形数据，直接转换字段名即可
+        this.applicableRegionOptions = region.code === 200 ? this.transformLookupData(region.data) : []
+        this.applicableRegionTree = this.applicableRegionOptions
+        this.orgTreeData = orgTree.code === 200 ? this.transformLookupData(orgTree.data) : []
       } catch (error) {
         console.error('加载Lookup数据失败:', error)
       }
@@ -341,28 +343,8 @@ export default {
       return data.map(item => ({
         code: item.value,
         name: item.label,
-        parentCode: item.parentId ? this.findParentCode(data, item.parentId) : null,
-        children: item.children ? this.transformLookupData(item.children) : []
+        children: item.children && item.children.length > 0 ? this.transformLookupData(item.children) : []
       }))
-    },
-
-    findParentCode(data, parentId) {
-      const parent = data.find(d => d.id === parentId)
-      return parent ? parent.value : null
-    },
-
-    buildTree(flatList) {
-      const map = {}
-      const roots = []
-      flatList.forEach(item => { map[item.code] = { ...item, children: [] } })
-      flatList.forEach(item => {
-        if (item.parentCode && map[item.parentCode]) {
-          map[item.parentCode].children.push(map[item.code])
-        } else {
-          roots.push(map[item.code])
-        }
-      })
-      return roots
     },
 
     async loadTableData() {
@@ -412,8 +394,18 @@ export default {
       return codes.map(code => { const item = options.find(o => o.code === code); return item ? item.name : code })
     },
     getLookupName(code, options) {
-      const item = options.find(o => o.code === code)
-      return item ? item.name : code
+      // 支持树形结构递归查找
+      const findNode = (nodes, targetCode) => {
+        for (const node of nodes) {
+          if (node.code === targetCode) return node.name
+          if (node.children && node.children.length > 0) {
+            const found = findNode(node.children, targetCode)
+            if (found) return found
+          }
+        }
+        return null
+      }
+      return findNode(options, code) || code
     },
     getOrgName(code) {
       const findNode = (nodes, targetCode) => {
