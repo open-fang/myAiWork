@@ -32,16 +32,16 @@
                 AND name LIKE CONCAT('%', #{name}, '%')
             </if>
             <if test="authTargetLevel != null and authTargetLevel != ''">
-                AND auth_target_level::jsonb ? #{authTargetLevel}
+                AND auth_target_level::jsonb ?? #{authTargetLevel}
             </if>
             <if test="applicableRegion != null and applicableRegion != ''">
-                AND applicable_region::jsonb ? #{applicableRegion}
+                AND applicable_region::jsonb ?? #{applicableRegion}
             </if>
             <if test="authPublishLevel != null and authPublishLevel != ''">
-                AND auth_publish_level::jsonb ? #{authPublishLevel}
+                AND auth_publish_level::jsonb ?? #{authPublishLevel}
             </if>
             <if test="authPublishOrg != null and authPublishOrg != ''">
-                AND auth_publish_org::jsonb ? #{authPublishOrg}
+                AND auth_publish_org::jsonb ?? #{authPublishOrg}
             </if>
             <if test="publishYear != null">
                 AND publish_year = #{publishYear}
@@ -62,16 +62,16 @@
                 AND name LIKE CONCAT('%', #{name}, '%')
             </if>
             <if test="authTargetLevel != null and authTargetLevel != ''">
-                AND auth_target_level::jsonb ? #{authTargetLevel}
+                AND auth_target_level::jsonb ?? #{authTargetLevel}
             </if>
             <if test="applicableRegion != null and applicableRegion != ''">
-                AND applicable_region::jsonb ? #{applicableRegion}
+                AND applicable_region::jsonb ?? #{applicableRegion}
             </if>
             <if test="authPublishLevel != null and authPublishLevel != ''">
-                AND auth_publish_level::jsonb ? #{authPublishLevel}
+                AND auth_publish_level::jsonb ?? #{authPublishLevel}
             </if>
             <if test="authPublishOrg != null and authPublishOrg != ''">
-                AND auth_publish_org::jsonb ? #{authPublishOrg}
+                AND auth_publish_org::jsonb ?? #{authPublishOrg}
             </if>
             <if test="publishYear != null">
                 AND publish_year = #{publishYear}
