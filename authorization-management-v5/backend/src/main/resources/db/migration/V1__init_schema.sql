@@ -6,7 +6,7 @@
 CREATE TABLE auth_lookup_value (
     id BIGSERIAL PRIMARY KEY,
     type_code VARCHAR(50) NOT NULL,
-    value VARCHAR(200) NOT NULL,
+    item_value VARCHAR(200) NOT NULL,
     label VARCHAR(200) NOT NULL,
     parent_id BIGINT NULL REFERENCES auth_lookup_value(id),
     sort_order INTEGER DEFAULT 0,
@@ -16,7 +16,7 @@ CREATE TABLE auth_lookup_value (
 
 COMMENT ON TABLE auth_lookup_value IS '下拉列表值表';
 COMMENT ON COLUMN auth_lookup_value.type_code IS '类型编码';
-COMMENT ON COLUMN auth_lookup_value.value IS '值';
+COMMENT ON COLUMN auth_lookup_value.item_value IS '值';
 COMMENT ON COLUMN auth_lookup_value.label IS '显示文本';
 COMMENT ON COLUMN auth_lookup_value.parent_id IS '父节点ID';
 COMMENT ON COLUMN auth_lookup_value.sort_order IS '排序号';
