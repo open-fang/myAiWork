@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>授权书管理系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.7.14/dist/vue.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-router@3.6.5/dist/vue-router.min.js"></script>
+    <link rel="stylesheet" href="css/common.css">
+</head>
+<body>
+    <div id="app">
+        <router-view></router-view>
+    </div>
+
+    <!-- 页面组件 -->
+    <script src="src/views/AuthLetterList.js"></script>
+    <script src="src/views/AuthLetterDetail.js"></script>
+    <script src="src/views/RuleParamConfig.js"></script>
+
+    <!-- 路由配置 -->
+    <script>
+        const routes = [
+            { path: '/', redirect: '/AuthLetterList' },
+            { path: '/AuthLetterList', component: AuthLetterList },
+            { path: '/AuthLetterDetail', component: AuthLetterDetail },
+            { path: '/RuleParamConfig', component: RuleParamConfig }
+        ];
+
+        const router = new VueRouter({
+            routes
+        });
+
+        new Vue({
+            router,
+            el: '#app'
+        });
+    </script>
+</body>
+</html>
