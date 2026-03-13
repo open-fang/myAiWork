@@ -44,7 +44,7 @@
         SELECT <include refid="Base_Column_List"/>
         FROM auth_lookup_value
         WHERE type_code = #{typeCode}
-        AND value IN
+        AND item_value IN
         <foreach collection="values" item="val" open="(" separator="," close=")">
             #{val}
         </foreach>
