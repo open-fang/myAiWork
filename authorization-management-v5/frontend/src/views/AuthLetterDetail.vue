@@ -335,59 +335,126 @@
               <span>规则配置</span>
             </div>
             <div class="rule-config-body">
-              <div class="rule-condition" v-for="(condition, index) in sceneForm.ruleConditions" :key="index">
-                <div class="condition-row">
-                  <select v-model="condition.fieldId" @change="onFieldChange(condition)">
-                    <option value="">请选择规则字段</option>
-                    <option v-for="field in ruleParamList" :key="field.id" :value="field.id">
-                      {{ field.name }}
-                    </option>
-                  </select>
-                  <template v-if="condition.fieldId">
-                    <select v-model="condition.operator">
-                      <option value=">">></option>
-                      <option value="<"><</option>
-                      <option value="=">=</option>
-                      <option value=">=">>=</option>
-                      <option value="<="><=</option>
-                      <option value="!=">!=</option>
+              <div v-if="sceneForm.ruleConditions.length === 0" class="empty-rule">暂无规则条件</div>
+              <div v-else>
+                <div v-for="(cond, index) in sceneForm.ruleConditions" :key="index" class="condition-item">
+                  <!-- 单个条件 -->
+                  <div v-if="cond.type === 'condition' || !cond.type" class="condition-row">
+                    <select v-model="cond.fieldId" @change="onFieldChange(cond)">
+                      <option value="">请选择规则字段</option>
+                      <option v-for="field in ruleParamList" :key="field.id" :value="field.id">
+                        {{ field.name }}
+                      </option>
                     </select>
-                    <select v-model="condition.compareType">
-                      <option value="FIELD">对比字段</option>
-                      <option value="NUMBER">数值</option>
-                      <option value="TEXT">文本</option>
-                    </select>
-                    <template v-if="condition.compareType === 'FIELD'">
-                      <select v-model="condition.compareFieldId">
-                        <option value="">请选择字段</option>
-                        <option v-for="field in ruleParamList" :key="field.id" :value="field.id">
-                          {{ field.name }}
-                        </option>
+                    <template v-if="cond.fieldId">
+                      <select v-model="cond.operator">
+                        <option value=">">></option>
+                        <option value="<"><</option>
+                        <option value="=">=</option>
+                        <option value=">=">>=</option>
+                        <option value="<="><=</option>
+                        <option value="!=">!=</option>
                       </select>
-                    </template>
-                    <template v-else-if="condition.compareType === 'NUMBER'">
-                      <input type="number" v-model="condition.compareValue" placeholder="请输入数值" />
-                      <select v-model="condition.unit">
-                        <option value="">单位</option>
-                        <option v-for="item in measureUnitOptions" :key="item.code" :value="item.code">
-                          {{ item.name }}
-                        </option>
+                      <select v-model="cond.compareType">
+                        <option value="FIELD">对比字段</option>
+                        <option value="NUMBER">数值</option>
+                        <option value="TEXT">文本</option>
                       </select>
+                      <template v-if="cond.compareType === 'FIELD'">
+                        <select v-model="cond.compareFieldId">
+                          <option value="">请选择字段</option>
+                          <option v-for="field in ruleParamList" :key="field.id" :value="field.id">
+                            {{ field.name }}
+                          </option>
+                        </select>
+                      </template>
+                      <template v-else-if="cond.compareType === 'NUMBER'">
+                        <input type="number" v-model="cond.compareValue" placeholder="请输入数值" />
+                        <select v-model="cond.unit">
+                          <option value="">单位</option>
+                          <option v-for="item in measureUnitOptions" :key="item.code" :value="item.code">
+                            {{ item.name }}
+                          </option>
+                        </select>
+                      </template>
+                      <template v-else>
+                        <input type="text" v-model="cond.compareValue" placeholder="请输入文本" />
+                      </template>
                     </template>
-                    <template v-else>
-                      <input type="text" v-model="condition.compareValue" placeholder="请输入文本" />
-                    </template>
-                  </template>
-                  <span class="remove-btn" @click="removeCondition(index)">✕</span>
-                </div>
-                <div class="condition-logic" v-if="index < sceneForm.ruleConditions.length - 1">
-                  <span class="logic-btn" @click="toggleLogic(index)">
-                    {{ condition.logic || '且' }}
-                  </span>
+                    <span class="remove-btn" @click="removeCondition(index)">✕</span>
+                    <div class="condition-logic" v-if="index < sceneForm.ruleConditions.length - 1">
+                      <span class="logic-btn" @click="toggleLogic(index)">
+                        {{ cond.logic || '且' }}
+                      </span>
+                    </div>
+                  </div>
+                  <!-- 条件组 -->
+                  <div v-else-if="cond.type === 'group'" class="condition-group">
+                    <div class="condition-group-header">
+                      <span class="logic-toggle" @click="toggleGroupLogic(index)">{{ cond.logic }}</span>
+                      <span class="remove-btn" @click="removeCondition(index)">✕ 删除组</span>
+                    </div>
+                    <div class="condition-group-body">
+                      <div v-if="cond.conditions.length === 0" class="empty-group">暂无条件</div>
+                      <div v-for="(subCond, subIndex) in cond.conditions" :key="subIndex" class="condition-row">
+                        <select v-model="subCond.fieldId" @change="onFieldChange(subCond)">
+                          <option value="">请选择规则字段</option>
+                          <option v-for="field in ruleParamList" :key="field.id" :value="field.id">
+                            {{ field.name }}
+                          </option>
+                        </select>
+                        <template v-if="subCond.fieldId">
+                          <select v-model="subCond.operator">
+                            <option value=">">></option>
+                            <option value="<"><</option>
+                            <option value="=">=</option>
+                            <option value=">=">>=</option>
+                            <option value="<="><=</option>
+                            <option value="!=">!=</option>
+                          </select>
+                          <select v-model="subCond.compareType">
+                            <option value="FIELD">对比字段</option>
+                            <option value="NUMBER">数值</option>
+                            <option value="TEXT">文本</option>
+                          </select>
+                          <template v-if="subCond.compareType === 'FIELD'">
+                            <select v-model="subCond.compareFieldId">
+                              <option value="">请选择字段</option>
+                              <option v-for="field in ruleParamList" :key="field.id" :value="field.id">
+                                {{ field.name }}
+                              </option>
+                            </select>
+                          </template>
+                          <template v-else-if="subCond.compareType === 'NUMBER'">
+                            <input type="number" v-model="subCond.compareValue" placeholder="请输入数值" />
+                            <select v-model="subCond.unit">
+                              <option value="">单位</option>
+                              <option v-for="item in measureUnitOptions" :key="item.code" :value="item.code">
+                                {{ item.name }}
+                              </option>
+                            </select>
+                          </template>
+                          <template v-else>
+                            <input type="text" v-model="subCond.compareValue" placeholder="请输入文本" />
+                          </template>
+                        </template>
+                        <span class="remove-btn" @click="removeSubCondition(index, subIndex)">✕</span>
+                        <div class="condition-logic" v-if="subIndex < cond.conditions.length - 1">
+                          <span class="logic-btn" @click="toggleSubLogic(index, subIndex)">
+                            {{ subCond.logic || '且' }}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="condition-group-footer">
+                      <span class="text-btn" @click="addSubCondition(index)">+ 添加条件</span>
+                    </div>
+                  </div>
                 </div>
               </div>
               <div class="rule-config-actions">
                 <span class="text-btn" @click="addCondition">+ 新增条件</span>
+                <span class="text-btn" @click="addConditionGroup">+ 新增子条件组</span>
               </div>
             </div>
           </div>
@@ -723,13 +790,48 @@ export default {
     },
     toggleOrgTreeNode(node) {
       const index = this.formData.authPublishOrg.indexOf(node.code);
-      if (index > -1) this.formData.authPublishOrg.splice(index, 1);
-      else this.formData.authPublishOrg.push(node.code);
+      const allCodes = this.getAllNodeCodes(node);
+      if (index > -1) {
+        // 取消选中：移除当前节点和所有子节点
+        allCodes.forEach(code => {
+          const idx = this.formData.authPublishOrg.indexOf(code);
+          if (idx > -1) this.formData.authPublishOrg.splice(idx, 1);
+        });
+      } else {
+        // 选中：添加当前节点和所有子节点
+        allCodes.forEach(code => {
+          if (!this.formData.authPublishOrg.includes(code)) {
+            this.formData.authPublishOrg.push(code);
+          }
+        });
+      }
     },
     toggleRegionTreeNode(node) {
       const index = this.formData.applicableRegion.indexOf(node.code);
-      if (index > -1) this.formData.applicableRegion.splice(index, 1);
-      else this.formData.applicableRegion.push(node.code);
+      const allCodes = this.getAllNodeCodes(node);
+      if (index > -1) {
+        // 取消选中：移除当前节点和所有子节点
+        allCodes.forEach(code => {
+          const idx = this.formData.applicableRegion.indexOf(code);
+          if (idx > -1) this.formData.applicableRegion.splice(idx, 1);
+        });
+      } else {
+        // 选中：添加当前节点和所有子节点
+        allCodes.forEach(code => {
+          if (!this.formData.applicableRegion.includes(code)) {
+            this.formData.applicableRegion.push(code);
+          }
+        });
+      }
+    },
+    getAllNodeCodes(node) {
+      let codes = [node.code];
+      if (node.children && node.children.length > 0) {
+        node.children.forEach(child => {
+          codes = codes.concat(this.getAllNodeCodes(child));
+        });
+      }
+      return codes;
     },
 
     // 附件操作
@@ -796,30 +898,34 @@ export default {
       if (!config) return [];
       try {
         const parsed = typeof config === 'string' ? JSON.parse(config) : config;
-        return this.flattenConditions(parsed);
+        return this.parseConditions(parsed);
       } catch (e) {
         return [];
       }
     },
-    flattenConditions(group) {
-      let result = [];
-      if (group.conditions) {
-        group.conditions.forEach((cond, index) => {
-          if (cond.type === 'condition') {
-            result.push({
-              fieldId: cond.fieldId,
-              fieldName: cond.fieldName,
-              operator: cond.operator,
-              compareType: cond.compareType,
-              compareValue: cond.compareValue,
-              unit: cond.unit,
-              compareFieldId: cond.compareFieldId,
-              logic: index < group.conditions.length - 1 ? group.logic : null
-            });
-          }
-        });
-      }
-      return result;
+    parseConditions(group) {
+      if (!group || !group.conditions) return [];
+      return group.conditions.map(cond => {
+        if (cond.type === 'group') {
+          return {
+            type: 'group',
+            logic: cond.logic || 'AND',
+            conditions: this.parseConditions(cond)
+          };
+        } else {
+          return {
+            type: 'condition',
+            fieldId: cond.fieldId,
+            fieldName: cond.fieldName,
+            operator: cond.operator,
+            compareType: cond.compareType,
+            compareValue: cond.compareValue,
+            unit: cond.unit,
+            compareFieldId: cond.compareFieldId,
+            logic: 'AND'
+          };
+        }
+      });
     },
     closeSceneModal() {
       this.showSceneModal = false;
@@ -854,16 +960,35 @@ export default {
       }
       return {
         logic: 'AND',
-        conditions: this.sceneForm.ruleConditions.map(cond => ({
-          type: 'condition',
-          fieldId: cond.fieldId,
-          fieldName: this.getFieldName(cond.fieldId),
-          operator: cond.operator,
-          compareType: cond.compareType,
-          compareValue: cond.compareValue,
-          unit: cond.unit,
-          compareFieldId: cond.compareFieldId
-        }))
+        conditions: this.sceneForm.ruleConditions.map(cond => {
+          if (cond.type === 'group') {
+            return {
+              type: 'group',
+              logic: cond.logic || 'AND',
+              conditions: cond.conditions.map(subCond => ({
+                type: 'condition',
+                fieldId: subCond.fieldId,
+                fieldName: this.getFieldName(subCond.fieldId),
+                operator: subCond.operator,
+                compareType: subCond.compareType,
+                compareValue: subCond.compareValue,
+                unit: subCond.unit,
+                compareFieldId: subCond.compareFieldId
+              }))
+            };
+          } else {
+            return {
+              type: 'condition',
+              fieldId: cond.fieldId,
+              fieldName: this.getFieldName(cond.fieldId),
+              operator: cond.operator,
+              compareType: cond.compareType,
+              compareValue: cond.compareValue,
+              unit: cond.unit,
+              compareFieldId: cond.compareFieldId
+            };
+          }
+        })
       };
     },
     getFieldName(fieldId) {
@@ -913,6 +1038,26 @@ export default {
     // 规则配置
     addCondition() {
       this.sceneForm.ruleConditions.push({
+        type: 'condition',
+        fieldId: '',
+        operator: '>',
+        compareType: 'NUMBER',
+        compareValue: '',
+        unit: '',
+        compareFieldId: '',
+        logic: 'AND'
+      });
+    },
+    addConditionGroup() {
+      this.sceneForm.ruleConditions.push({
+        type: 'group',
+        logic: 'AND',
+        conditions: []
+      });
+    },
+    addSubCondition(groupIndex) {
+      this.sceneForm.ruleConditions[groupIndex].conditions.push({
+        type: 'condition',
         fieldId: '',
         operator: '>',
         compareType: 'NUMBER',
@@ -925,6 +1070,9 @@ export default {
     removeCondition(index) {
       this.sceneForm.ruleConditions.splice(index, 1);
     },
+    removeSubCondition(groupIndex, subIndex) {
+      this.sceneForm.ruleConditions[groupIndex].conditions.splice(subIndex, 1);
+    },
     onFieldChange(condition) {
       const field = this.ruleParamList.find(f => f.id === condition.fieldId);
       if (field) {
@@ -934,6 +1082,14 @@ export default {
     toggleLogic(index) {
       const condition = this.sceneForm.ruleConditions[index];
       condition.logic = condition.logic === 'AND' ? 'OR' : 'AND';
+    },
+    toggleGroupLogic(groupIndex) {
+      const group = this.sceneForm.ruleConditions[groupIndex];
+      group.logic = group.logic === 'AND' ? 'OR' : 'AND';
+    },
+    toggleSubLogic(groupIndex, subIndex) {
+      const subCond = this.sceneForm.ruleConditions[groupIndex].conditions[subIndex];
+      subCond.logic = subCond.logic === 'AND' ? 'OR' : 'AND';
     },
 
     // 工具方法
@@ -1186,4 +1342,13 @@ export default {
 .condition-logic { margin-bottom: 10px; padding-left: 20px; }
 .logic-btn { display: inline-block; padding: 4px 12px; background: #f0f0f0; border-radius: 4px; cursor: pointer; font-size: 12px; }
 .logic-btn:hover { background: #e0e0e0; }
+.condition-item { margin-bottom: 12px; }
+.condition-group { border: 1px solid #e4e7ed; border-radius: 4px; padding: 12px; background: #fafafa; margin-bottom: 12px; }
+.condition-group-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.logic-toggle { background: #409eff; color: #fff; padding: 2px 8px; border-radius: 3px; cursor: pointer; font-size: 12px; }
+.logic-toggle:hover { opacity: 0.8; }
+.condition-group-body { padding-left: 20px; }
+.condition-group-footer { padding-top: 8px; border-top: 1px dashed #e4e7ed; margin-top: 8px; }
+.empty-rule { color: #909399; text-align: center; padding: 20px; }
+.empty-group { color: #909399; text-align: center; padding: 10px; font-size: 13px; }
 </style>

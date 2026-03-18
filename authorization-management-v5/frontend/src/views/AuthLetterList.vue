@@ -418,9 +418,13 @@ export default {
       return findNode(this.orgTreeData, code) || code
     },
     toggleTreeNodeSelect(node) {
-      const index = this.queryParams.applicableRegion.indexOf(node.code)
-      if (index > -1) this.queryParams.applicableRegion.splice(index, 1)
-      else this.queryParams.applicableRegion.push(node.code)
+      const toggleNodeAndChildren = (n, shouldCheck) => {
+        const index = this.queryParams.applicableRegion.indexOf(n.code)
+        if (shouldCheck && index === -1) this.queryParams.applicableRegion.push(n.code)
+        else if (!shouldCheck && index > -1) this.queryParams.applicableRegion.splice(index, 1)
+        if (n.children) n.children.forEach(child => toggleNodeAndChildren(child, shouldCheck))
+      }
+      toggleNodeAndChildren(node, !this.queryParams.applicableRegion.includes(node.code))
     },
     toggleOrgTreeNode(node) {
       const toggleNodeAndChildren = (n, shouldCheck) => {
