@@ -404,30 +404,35 @@
 
 <script>
 // HTTP请求封装
+// ============ 接口配置 ============
+// 修改此处的 baseURL 以适配你的后端服务地址
+const baseURL = 'http://localhost:8080/api/v1'
+// ==================================
+
 const http = {
   get(url, params) {
     const query = new URLSearchParams(params).toString()
-    return fetch(`/api/v1${url}${query ? '?' + query : ''}`, {
+    return fetch(`${baseURL}${url}${query ? '?' + query : ''}`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' }
     }).then(res => res.json())
   },
   post(url, data) {
-    return fetch(`/api/v1${url}`, {
+    return fetch(`${baseURL}${url}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     }).then(res => res.json())
   },
   put(url, data) {
-    return fetch(`/api/v1${url}`, {
+    return fetch(`${baseURL}${url}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     }).then(res => res.json())
   },
   delete(url) {
-    return fetch(`/api/v1${url}`, {
+    return fetch(`${baseURL}${url}`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' }
     }).then(res => res.json())
