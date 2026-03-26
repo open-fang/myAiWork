@@ -23,8 +23,14 @@
         created_by, created_time, updated_by, updated_time, delete_flag
     </sql>
 
+    <sql id="Aliased_Column_List">
+        lv.id, lv.type_id, lv.value_code, lv.value_name, lv.parent_code, lv.level,
+        lv.sort_order, lv.status, lv.created_by, lv.created_time, lv.updated_by,
+        lv.updated_time, lv.delete_flag
+    </sql>
+
     <select id="selectByTypeCode" resultMap="BaseResultMap">
-        SELECT lv.<include refid="Base_Column_List"/>
+        SELECT <include refid="Aliased_Column_List"/>
         FROM lookup_value lv
         INNER JOIN lookup_type lt ON lv.type_id = lt.id
         WHERE lt.type_code = #{typeCode}
@@ -43,7 +49,7 @@
     </select>
 
     <select id="selectByParentCode" resultMap="BaseResultMap">
-        SELECT lv.<include refid="Base_Column_List"/>
+        SELECT <include refid="Aliased_Column_List"/>
         FROM lookup_value lv
         INNER JOIN lookup_type lt ON lv.type_id = lt.id
         WHERE lt.type_code = #{typeCode}
