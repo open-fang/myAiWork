@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.auth.letter.dao.LookupValueDao">
+
+    <resultMap id="BaseResultMap" type="com.auth.letter.entity.LookupValue">
+        <id column="id" property="id"/>
+        <result column="type_id" property="typeId"/>
+        <result column="value_code" property="valueCode"/>
+        <result column="value_name" property="valueName"/>
+        <result column="parent_code" property="parentCode"/>
+        <result column="level" property="level"/>
+        <result column="sort_order" property="sortOrder"/>
+        <result column="status" property="status"/>
+        <result column="created_by" property="createdBy"/>
+        <result column="created_time" property="createdTime"/>
+        <result column="updated_by" property="updatedBy"/>
+        <result column="updated_time" property="updatedTime"/>
+        <result column="delete_flag" property="deleteFlag"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, type_id, value_code, value_name, parent_code, level, sort_order, status,
+        created_by, created_time, updated_by, updated_time, delete_flag
+    </sql>
+
+    <select id="selectByTypeCode" resultMap="BaseResultMap">
+        SELECT lv.<include refid="Base_Column_List"/>
+        FROM lookup_value lv
+        INNER JOIN lookup_type lt ON lv.type_id = lt.id
+        WHERE lt.type_code = #{typeCode}
+        AND lv.delete_flag = 0
+        AND lv.status = 'ACTIVE'
+        ORDER BY lv.sort_order, lv.id
+    </select>
+
+    <select id="selectByTypeId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM lookup_value
+        WHERE type_id = #{typeId}
+        AND delete_flag = 0
+        AND status = 'ACTIVE'
+        ORDER BY sort_order, id
+    </select>
+
+    <select id="selectByParentCode" resultMap="BaseResultMap">
+        SELECT lv.<include refid="Base_Column_List"/>
+        FROM lookup_value lv
+        INNER JOIN lookup_type lt ON lv.type_id = lt.id
+        WHERE lt.type_code = #{typeCode}
+        AND lv.parent_code = #{parentCode}
+        AND lv.delete_flag = 0
+        AND lv.status = 'ACTIVE'
+        ORDER BY lv.sort_order, lv.id
+    </select>
+
+</mapper>

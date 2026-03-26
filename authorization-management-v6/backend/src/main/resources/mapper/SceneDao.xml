@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.auth.letter.dao.SceneDao">
+
+    <resultMap id="BaseResultMap" type="com.auth.letter.entity.Scene">
+        <id column="id" property="id"/>
+        <result column="auth_letter_id" property="authLetterId"/>
+        <result column="scene_name" property="sceneName"/>
+        <result column="industry" property="industry"/>
+        <result column="business_scene" property="businessScene"/>
+        <result column="decision_level" property="decisionLevel"/>
+        <result column="specific_rule" property="specificRule"/>
+        <result column="questionnaire" property="questionnaire"/>
+        <result column="created_by" property="createdBy"/>
+        <result column="created_time" property="createdTime"/>
+        <result column="updated_by" property="updatedBy"/>
+        <result column="updated_time" property="updatedTime"/>
+        <result column="delete_flag" property="deleteFlag"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, auth_letter_id, scene_name, industry, business_scene, decision_level, specific_rule, questionnaire,
+        created_by, created_time, updated_by, updated_time, delete_flag
+    </sql>
+
+    <select id="selectList" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM auth_letter_scene
+        WHERE auth_letter_id = #{authLetterId} AND delete_flag = 0
+        ORDER BY created_time DESC
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
+    <select id="countList" resultType="long">
+        SELECT COUNT(1)
+        FROM auth_letter_scene
+        WHERE auth_letter_id = #{authLetterId} AND delete_flag = 0
+    </select>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM auth_letter_scene
+        WHERE id = #{id} AND delete_flag = 0
+    </select>
+
+    <select id="selectByAuthLetterId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM auth_letter_scene
+        WHERE auth_letter_id = #{authLetterId} AND delete_flag = 0
+        ORDER BY created_time DESC
+    </select>
+
+    <insert id="insert" parameterType="com.auth.letter.entity.Scene" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO auth_letter_scene (auth_letter_id, scene_name, industry, business_scene, decision_level,
+            specific_rule, questionnaire, created_by, created_time, delete_flag)
+        VALUES (#{authLetterId}, #{sceneName}, #{industry}, #{businessScene}, #{decisionLevel},
+            #{specificRule}, #{questionnaire}, #{createdBy}, CURRENT_TIMESTAMP, 0)
+    </insert>
+
+    <update id="update" parameterType="com.auth.letter.entity.Scene">
+        UPDATE auth_letter_scene
+        SET scene_name = #{sceneName},
+            industry = #{industry},
+            business_scene = #{businessScene},
+            decision_level = #{decisionLevel},
+            specific_rule = #{specificRule},
+            questionnaire = #{questionnaire},
+            updated_by = #{updatedBy},
+            updated_time = CURRENT_TIMESTAMP
+        WHERE id = #{id} AND delete_flag = 0
+    </update>
+
+    <update id="deleteById">
+        UPDATE auth_letter_scene SET delete_flag = 1 WHERE id = #{id}
+    </update>
+
+    <update id="deleteByIds">
+        UPDATE auth_letter_scene SET delete_flag = 1 WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+</mapper>

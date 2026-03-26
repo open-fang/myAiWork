@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.auth.letter.dao.AuthLetterDao">
+
+    <resultMap id="BaseResultMap" type="com.auth.letter.entity.AuthLetter">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="auth_object_level" property="authObjectLevel"/>
+        <result column="applicable_region" property="applicableRegion"/>
+        <result column="auth_publish_level" property="authPublishLevel"/>
+        <result column="auth_publish_org" property="authPublishOrg"/>
+        <result column="publish_year" property="publishYear"/>
+        <result column="summary" property="summary"/>
+        <result column="status" property="status"/>
+        <result column="created_by" property="createdBy"/>
+        <result column="created_time" property="createdTime"/>
+        <result column="updated_by" property="updatedBy"/>
+        <result column="updated_time" property="updatedTime"/>
+        <result column="delete_flag" property="deleteFlag"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, name, auth_object_level, applicable_region, auth_publish_level, auth_publish_org,
+        publish_year, summary, status, created_by, created_time, updated_by, updated_time, delete_flag
+    </sql>
+
+    <select id="selectList" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM auth_letter
+        WHERE delete_flag = 0
+        <if test="name != null and name != ''">
+            AND name LIKE CONCAT('%', #{name}, '%')
+        </if>
+        <if test="authObjectLevel != null and authObjectLevel != ''">
+            AND auth_object_level LIKE CONCAT('%', #{authObjectLevel}, '%')
+        </if>
+        <if test="applicableRegion != null and applicableRegion != ''">
+            AND applicable_region LIKE CONCAT('%', #{applicableRegion}, '%')
+        </if>
+        <if test="authPublishLevel != null and authPublishLevel != ''">
+            AND auth_publish_level LIKE CONCAT('%', #{authPublishLevel}, '%')
+        </if>
+        <if test="authPublishOrg != null and authPublishOrg != ''">
+            AND auth_publish_org LIKE CONCAT('%', #{authPublishOrg}, '%')
+        </if>
+        <if test="publishYear != null">
+            AND publish_year = #{publishYear}
+        </if>
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
+        ORDER BY created_time DESC
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
+    <select id="countList" resultType="long">
+        SELECT COUNT(1)
+        FROM auth_letter
+        WHERE delete_flag = 0
+        <if test="name != null and name != ''">
+            AND name LIKE CONCAT('%', #{name}, '%')
+        </if>
+        <if test="authObjectLevel != null and authObjectLevel != ''">
+            AND auth_object_level LIKE CONCAT('%', #{authObjectLevel}, '%')
+        </if>
+        <if test="applicableRegion != null and applicableRegion != ''">
+            AND applicable_region LIKE CONCAT('%', #{applicableRegion}, '%')
+        </if>
+        <if test="authPublishLevel != null and authPublishLevel != ''">
+            AND auth_publish_level LIKE CONCAT('%', #{authPublishLevel}, '%')
+        </if>
+        <if test="authPublishOrg != null and authPublishOrg != ''">
+            AND auth_publish_org LIKE CONCAT('%', #{authPublishOrg}, '%')
+        </if>
+        <if test="publishYear != null">
+            AND publish_year = #{publishYear}
+        </if>
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
+    </select>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM auth_letter
+        WHERE id = #{id} AND delete_flag = 0
+    </select>
+
+    <insert id="insert" parameterType="com.auth.letter.entity.AuthLetter" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO auth_letter (name, auth_object_level, applicable_region, auth_publish_level, auth_publish_org,
+            publish_year, summary, status, created_by, created_time, delete_flag)
+        VALUES (#{name}, #{authObjectLevel}, #{applicableRegion}, #{authPublishLevel}, #{authPublishOrg},
+            #{publishYear}, #{summary}, #{status}, #{createdBy}, CURRENT_TIMESTAMP, 0)
+    </insert>
+
+    <update id="update" parameterType="com.auth.letter.entity.AuthLetter">
+        UPDATE auth_letter
+        SET name = #{name},
+            auth_object_level = #{authObjectLevel},
+            applicable_region = #{applicableRegion},
+            auth_publish_level = #{authPublishLevel},
+            auth_publish_org = #{authPublishOrg},
+            publish_year = #{publishYear},
+            summary = #{summary},
+            updated_by = #{updatedBy},
+            updated_time = CURRENT_TIMESTAMP
+        WHERE id = #{id} AND delete_flag = 0
+    </update>
+
+    <update id="deleteById">
+        UPDATE auth_letter SET delete_flag = 1 WHERE id = #{id}
+    </update>
+
+    <update id="deleteByIds">
+        UPDATE auth_letter SET delete_flag = 1 WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <update id="updateStatus">
+        UPDATE auth_letter
+        SET status = #{status}, updated_by = #{updatedBy}, updated_time = CURRENT_TIMESTAMP
+        WHERE id = #{id} AND delete_flag = 0
+    </update>
+
+    <update id="batchUpdateStatus">
+        UPDATE auth_letter
+        SET status = #{status}, updated_by = #{updatedBy}, updated_time = CURRENT_TIMESTAMP
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        AND delete_flag = 0
+    </update>
+
+</mapper>

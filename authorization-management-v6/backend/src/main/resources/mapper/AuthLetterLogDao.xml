@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.auth.letter.dao.AuthLetterLogDao">
+
+    <resultMap id="BaseResultMap" type="com.auth.letter.entity.AuthLetterLog">
+        <id column="id" property="id"/>
+        <result column="auth_letter_id" property="authLetterId"/>
+        <result column="operation" property="operation"/>
+        <result column="operator" property="operator"/>
+        <result column="operation_time" property="operationTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, auth_letter_id, operation, operator, operation_time
+    </sql>
+
+    <select id="selectList" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM auth_letter_log
+        WHERE auth_letter_id = #{authLetterId}
+        ORDER BY operation_time DESC
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
+    <select id="countList" resultType="long">
+        SELECT COUNT(1)
+        FROM auth_letter_log
+        WHERE auth_letter_id = #{authLetterId}
+    </select>
+
+    <insert id="insert" parameterType="com.auth.letter.entity.AuthLetterLog">
+        INSERT INTO auth_letter_log (auth_letter_id, operation, operator, operation_time)
+        VALUES (#{authLetterId}, #{operation}, #{operator}, CURRENT_TIMESTAMP)
+    </insert>
+
+</mapper>
