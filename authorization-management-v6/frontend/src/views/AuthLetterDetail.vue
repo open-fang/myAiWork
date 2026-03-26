@@ -285,6 +285,24 @@
             </div>
           </div>
 
+          <!-- 问卷配置 -->
+          <div class="questionnaire-section">
+            <div class="questionnaire-header">
+              <h4>问卷配置</h4>
+              <button class="btn btn-primary btn-sm" @click="openQuestionnaireConfig">问卷题目配置</button>
+            </div>
+            <div class="form-item" style="flex: 1;">
+              <label>问卷设计</label>
+              <textarea
+                v-model="sceneForm.questionnaire"
+                placeholder="请输入问卷内容（JSON格式）"
+                maxlength="4000"
+                style="min-height: 80px;"
+              ></textarea>
+              <div class="form-tip">问卷内容支持JSON格式，用于定义问卷问题和选项。也可通过"问卷题目配置"按钮进行可视化配置。</div>
+            </div>
+          </div>
+
           <!-- 规则配置 -->
           <div class="rule-config">
             <h4>规则配置</h4>
@@ -396,6 +414,288 @@
         <div class="modal-footer">
           <button class="btn btn-primary" @click="handleConfirmUpload">确定</button>
           <button class="btn" @click="showUploadModal = false">取消</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 问卷题目配置弹窗 -->
+    <div class="modal-overlay" v-if="showQuestionnaireModal">
+      <div class="modal-content questionnaire-modal">
+        <div class="modal-header">
+          <h3>问卷题目配置</h3>
+          <span class="modal-close" @click="showQuestionnaireModal = false">&times;</span>
+        </div>
+        <div class="modal-body">
+          <!-- 搜索条件 -->
+          <div class="search-form">
+            <div class="form-row">
+              <div class="form-item">
+                <label>题目编号</label>
+                <input type="text" v-model="questionSearch.questionCode" placeholder="请输入题目编号" />
+              </div>
+              <div class="form-item">
+                <label>题目</label>
+                <input type="text" v-model="questionSearch.questionText" placeholder="请输入题目" />
+              </div>
+              <div class="form-item">
+                <label>语言</label>
+                <custom-select v-model="questionSearch.language" :options="languageOptions" placeholder="请选择语言" />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-item">
+                <label>创建人</label>
+                <input type="text" v-model="questionSearch.createdBy" placeholder="请输入创建人" />
+              </div>
+              <div class="form-item">
+                <label>创建时间</label>
+                <input type="date" v-model="questionSearch.createdDate" />
+              </div>
+              <div class="form-item">
+                <label>更新人</label>
+                <input type="text" v-model="questionSearch.updatedBy" placeholder="请输入更新人" />
+              </div>
+            </div>
+            <div class="form-row">
+              <button class="btn btn-primary" @click="loadQuestions">查询</button>
+              <button class="btn" @click="resetQuestionSearch">重置</button>
+            </div>
+          </div>
+
+          <!-- 功能按钮 -->
+          <div class="table-toolbar">
+            <button class="btn btn-primary" @click="openQuestionModal">新增</button>
+            <button class="btn" @click="batchDeleteQuestions" :disabled="selectedQuestions.length === 0">删除</button>
+          </div>
+
+          <!-- 题目列表 -->
+          <table>
+            <thead>
+              <tr>
+                <th><input type="checkbox" v-model="isAllQuestionSelected" @change="handleQuestionSelectAll" /></th>
+                <th>序号</th>
+                <th>操作</th>
+                <th>题目编号</th>
+                <th>题目</th>
+                <th>语言</th>
+                <th>创建人</th>
+                <th>创建时间</th>
+                <th>更新人</th>
+                <th>更新时间</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(item, index) in questionList" :key="item.id">
+                <td><input type="checkbox" v-model="selectedQuestions" :value="item.id" /></td>
+                <td>{{ (questionPageNum - 1) * questionPageSize + index + 1 }}</td>
+                <td>
+                  <span class="action-btn action-edit" @click="editQuestion(item)">编辑</span>
+                  <span class="action-btn action-delete" @click="deleteQuestion(item.id)">删除</span>
+                </td>
+                <td>{{ item.questionCode }}</td>
+                <td>{{ getQuestionText(item, 'ZH') }}</td>
+                <td>{{ getQuestionLanguage(item) }}</td>
+                <td>{{ item.createdBy }}</td>
+                <td>{{ item.createdTime }}</td>
+                <td>{{ item.updatedBy }}</td>
+                <td>{{ item.updatedTime }}</td>
+              </tr>
+              <tr v-if="questionList.length === 0">
+                <td colspan="10" style="text-align: center; color: #999;">暂无数据</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- 分页 -->
+          <div class="pagination">
+            <span>共 {{ questionTotal }} 条</span>
+            <select v-model="questionPageSize" @change="loadQuestions">
+              <option :value="10">10条/页</option>
+              <option :value="30">30条/页</option>
+            </select>
+            <button :disabled="questionPageNum === 1" @click="questionPageNum--; loadQuestions()">上一页</button>
+            <span>第 {{ questionPageNum }} 页</span>
+            <button :disabled="questionPageNum * questionPageSize >= questionTotal" @click="questionPageNum++; loadQuestions()">下一页</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 问卷题目维护弹窗 -->
+    <div class="modal-overlay" v-if="showQuestionModal">
+      <div class="modal-content" style="width: 900px;">
+        <div class="modal-header">
+          <h3>{{ editingQuestion ? '编辑题目' : '新增题目' }}</h3>
+          <span class="modal-close" @click="showQuestionModal = false">&times;</span>
+        </div>
+        <div class="modal-body">
+          <!-- 题目编号 -->
+          <div class="form-item">
+            <label>题目编号</label>
+            <span class="readonly-value">{{ questionForm.questionCode || '自动生成' }}</span>
+          </div>
+
+          <!-- 题目表格 -->
+          <div class="sub-section">
+            <div class="sub-section-header">
+              <h4>题目内容</h4>
+              <div>
+                <button class="btn btn-link" @click="addQuestionTextRow">+ 添加行</button>
+                <button class="btn btn-link" @click="deleteSelectedQuestionTexts" :disabled="selectedQuestionTexts.length === 0">删除</button>
+              </div>
+            </div>
+            <table class="sub-table">
+              <thead>
+                <tr>
+                  <th><input type="checkbox" v-model="isAllQuestionTextSelected" @change="handleQuestionTextSelectAll" /></th>
+                  <th>序号</th>
+                  <th>操作</th>
+                  <th>题目</th>
+                  <th>语言</th>
+                  <th>创建人</th>
+                  <th>创建时间</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(item, index) in questionForm.questionTexts" :key="index">
+                  <td><input type="checkbox" v-model="selectedQuestionTexts" :value="index" /></td>
+                  <td>{{ index + 1 }}</td>
+                  <td><span class="action-btn action-delete" @click="removeQuestionText(index)">删除</span></td>
+                  <td><input type="text" v-model="item.questionText" placeholder="请输入题目" class="table-input" /></td>
+                  <td>
+                    <select v-model="item.language" class="table-select">
+                      <option value="">请选择</option>
+                      <option value="ZH">中文</option>
+                      <option value="EN">English</option>
+                    </select>
+                  </td>
+                  <td>{{ item.createdBy || '-' }}</td>
+                  <td>{{ item.createdTime || '-' }}</td>
+                </tr>
+                <tr v-if="questionForm.questionTexts.length === 0">
+                  <td colspan="7" style="text-align: center; color: #999;">请点击"添加行"添加题目内容</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- 可选答案表格 -->
+          <div class="sub-section">
+            <div class="sub-section-header">
+              <h4>可选答案</h4>
+              <div>
+                <button class="btn btn-link" @click="openAnswerModal(null)">+ 新增</button>
+                <button class="btn btn-link" @click="batchDeleteAnswers" :disabled="selectedAnswers.length === 0">删除</button>
+              </div>
+            </div>
+            <table class="sub-table">
+              <thead>
+                <tr>
+                  <th><input type="checkbox" v-model="isAllAnswerSelected" @change="handleAnswerSelectAll" /></th>
+                  <th>序号</th>
+                  <th>操作</th>
+                  <th>答案编号</th>
+                  <th>答案</th>
+                  <th>语言</th>
+                  <th>创建人</th>
+                  <th>创建时间</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(item, index) in answerList" :key="item.id">
+                  <td><input type="checkbox" v-model="selectedAnswers" :value="item.id" /></td>
+                  <td>{{ (answerPageNum - 1) * answerPageSize + index + 1 }}</td>
+                  <td>
+                    <span class="action-btn action-edit" @click="openAnswerModal(item)">编辑</span>
+                    <span class="action-btn action-delete" @click="deleteAnswer(item.id)">删除</span>
+                  </td>
+                  <td>{{ item.answerCode }}</td>
+                  <td>{{ getAnswerText(item, 'ZH') }}</td>
+                  <td>{{ getAnswerLanguage(item) }}</td>
+                  <td>{{ item.createdBy }}</td>
+                  <td>{{ item.createdTime }}</td>
+                </tr>
+                <tr v-if="answerList.length === 0">
+                  <td colspan="8" style="text-align: center; color: #999;">暂无答案，请点击"新增"添加</td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="pagination" v-if="answerTotal > 0">
+              <span>共 {{ answerTotal }} 条</span>
+              <button :disabled="answerPageNum === 1" @click="answerPageNum--; loadAnswers()">上一页</button>
+              <span>第 {{ answerPageNum }} 页</span>
+              <button :disabled="answerPageNum * answerPageSize >= answerTotal" @click="answerPageNum++; loadAnswers()">下一页</button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" @click="saveQuestion">确定</button>
+          <button class="btn" @click="showQuestionModal = false">取消</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 问卷答案维护弹窗 -->
+    <div class="modal-overlay" v-if="showAnswerModal">
+      <div class="modal-content" style="width: 700px;">
+        <div class="modal-header">
+          <h3>{{ editingAnswer ? '编辑答案' : '新增答案' }}</h3>
+          <span class="modal-close" @click="showAnswerModal = false">&times;</span>
+        </div>
+        <div class="modal-body">
+          <!-- 答案编号 -->
+          <div class="form-item">
+            <label>答案编号</label>
+            <span class="readonly-value">{{ answerForm.answerCode || '自动生成' }}</span>
+          </div>
+
+          <!-- 答案表格 -->
+          <div class="sub-section">
+            <div class="sub-section-header">
+              <h4>答案内容</h4>
+              <div>
+                <button class="btn btn-link" @click="addAnswerTextRow">+ 添加行</button>
+                <button class="btn btn-link" @click="deleteSelectedAnswerTexts" :disabled="selectedAnswerTexts.length === 0">删除</button>
+              </div>
+            </div>
+            <table class="sub-table">
+              <thead>
+                <tr>
+                  <th><input type="checkbox" v-model="isAllAnswerTextSelected" @change="handleAnswerTextSelectAll" /></th>
+                  <th>序号</th>
+                  <th>操作</th>
+                  <th>答案</th>
+                  <th>语言</th>
+                  <th>创建人</th>
+                  <th>创建时间</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(item, index) in answerForm.answerTexts" :key="index">
+                  <td><input type="checkbox" v-model="selectedAnswerTexts" :value="index" /></td>
+                  <td>{{ index + 1 }}</td>
+                  <td><span class="action-btn action-delete" @click="removeAnswerText(index)">删除</span></td>
+                  <td><input type="text" v-model="item.answerText" placeholder="请输入答案" class="table-input" /></td>
+                  <td>
+                    <select v-model="item.language" class="table-select">
+                      <option value="">请选择</option>
+                      <option value="ZH">中文</option>
+                      <option value="EN">English</option>
+                    </select>
+                  </td>
+                  <td>{{ item.createdBy || '-' }}</td>
+                  <td>{{ item.createdTime || '-' }}</td>
+                </tr>
+                <tr v-if="answerForm.answerTexts.length === 0">
+                  <td colspan="7" style="text-align: center; color: #999;">请点击"添加行"添加答案内容</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" @click="saveAnswer">确定</button>
+          <button class="btn" @click="showAnswerModal = false">取消</button>
         </div>
       </div>
     </div>
@@ -761,6 +1061,7 @@ export default {
         businessScene: '',
         decisionLevel: '',
         specificRule: '',
+        questionnaire: '',
         conditions: []
       },
       uploadForm: {
@@ -774,6 +1075,50 @@ export default {
         { value: 'EXCEL', label: 'Excel文档' },
         { value: 'IMAGE', label: '图片' },
         { value: 'OTHER', label: '其他' }
+      ],
+      // 问卷题目配置相关
+      showQuestionnaireModal: false,
+      showQuestionModal: false,
+      showAnswerModal: false,
+      questionSearch: {
+        questionCode: '',
+        questionText: '',
+        language: '',
+        createdBy: '',
+        createdDate: '',
+        updatedBy: '',
+        updatedDate: ''
+      },
+      questionList: [],
+      questionPageNum: 1,
+      questionPageSize: 10,
+      questionTotal: 0,
+      selectedQuestions: [],
+      isAllQuestionSelected: false,
+      editingQuestion: null,
+      questionForm: {
+        questionCode: '',
+        questionTexts: []
+      },
+      selectedQuestionTexts: [],
+      isAllQuestionTextSelected: false,
+      // 答案相关
+      answerList: [],
+      answerPageNum: 1,
+      answerPageSize: 10,
+      answerTotal: 0,
+      selectedAnswers: [],
+      isAllAnswerSelected: false,
+      editingAnswer: null,
+      answerForm: {
+        answerCode: '',
+        answerTexts: []
+      },
+      selectedAnswerTexts: [],
+      isAllAnswerTextSelected: false,
+      languageOptions: [
+        { value: 'ZH', label: '中文' },
+        { value: 'EN', label: 'English' }
       ]
     }
   },
@@ -1033,6 +1378,7 @@ export default {
         businessScene: '',
         decisionLevel: '',
         specificRule: '',
+        questionnaire: '',
         conditions: []
       }
       this.showSceneModal = true
@@ -1045,6 +1391,7 @@ export default {
         businessScene: scene.businessScene,
         decisionLevel: scene.decisionLevel,
         specificRule: scene.specificRule,
+        questionnaire: scene.questionnaire || '',
         conditions: []
       }
       this.showSceneModal = true
@@ -1075,6 +1422,21 @@ export default {
       } catch (e) {
         console.error('删除失败', e)
       }
+    },
+    handlePreviewQuestionnaire() {
+      if (!this.sceneForm.questionnaire) {
+        alert('问卷内容为空')
+        return
+      }
+      try {
+        const questionnaire = JSON.parse(this.sceneForm.questionnaire)
+        alert('问卷预览：\n' + JSON.stringify(questionnaire, null, 2))
+      } catch (e) {
+        alert('问卷格式错误，请输入有效的JSON格式')
+      }
+    },
+    handleClearQuestionnaire() {
+      this.sceneForm.questionnaire = ''
     },
     async handleDeleteScenes() {
       if (!confirm('确定要删除选中的场景吗？')) return
@@ -1148,6 +1510,266 @@ export default {
         'DELETE': '删除'
       }
       return map[operation] || operation
+    },
+
+    // ==================== 问卷题目配置相关方法 ====================
+    openQuestionnaireConfig() {
+      this.showQuestionnaireModal = true
+      this.loadQuestions()
+    },
+    async loadQuestions() {
+      try {
+        const params = {
+          pageNum: this.questionPageNum,
+          pageSize: this.questionPageSize,
+          ...this.questionSearch
+        }
+        const res = await http.get('/questions', params)
+        if (res.code === 200) {
+          this.questionList = res.data.list || []
+          this.questionTotal = res.data.total || 0
+        }
+      } catch (e) {
+        console.error('加载题目列表失败', e)
+      }
+    },
+    resetQuestionSearch() {
+      this.questionSearch = {
+        questionCode: '',
+        questionText: '',
+        language: '',
+        createdBy: '',
+        createdDate: '',
+        updatedBy: '',
+        updatedDate: ''
+      }
+      this.questionPageNum = 1
+      this.loadQuestions()
+    },
+    handleQuestionSelectAll() {
+      if (this.isAllQuestionSelected) {
+        this.selectedQuestions = this.questionList.map(item => item.id)
+      } else {
+        this.selectedQuestions = []
+      }
+    },
+    openQuestionModal() {
+      this.editingQuestion = null
+      this.questionForm = {
+        questionCode: '',
+        questionTexts: [{ questionText: '', language: 'ZH' }]
+      }
+      this.selectedQuestionTexts = []
+      this.answerList = []
+      this.answerTotal = 0
+      this.showQuestionModal = true
+    },
+    async editQuestion(question) {
+      this.editingQuestion = question
+      this.questionForm = {
+        questionCode: question.questionCode,
+        questionTexts: question.questionTexts ? question.questionTexts.map(t => ({
+          questionText: t.questionText,
+          language: t.language,
+          createdBy: t.createdBy,
+          createdTime: t.createdTime
+        })) : []
+      }
+      this.selectedQuestionTexts = []
+      this.showQuestionModal = true
+      this.loadAnswers()
+    },
+    async saveQuestion() {
+      try {
+        // 验证语言唯一性
+        const languages = this.questionForm.questionTexts.map(t => t.language).filter(l => l)
+        const uniqueLanguages = [...new Set(languages)]
+        if (languages.length !== uniqueLanguages.length) {
+          alert('相同语言只能维护一个题目')
+          return
+        }
+
+        const data = {
+          questionTexts: this.questionForm.questionTexts.filter(t => t.questionText && t.language)
+        }
+
+        if (this.editingQuestion) {
+          await http.put(`/questions/${this.editingQuestion.id}`, data)
+          alert('更新成功')
+        } else {
+          await http.post('/questions', data)
+          alert('创建成功')
+        }
+
+        this.showQuestionModal = false
+        this.loadQuestions()
+      } catch (e) {
+        console.error('保存题目失败', e)
+        alert('保存失败')
+      }
+    },
+    async deleteQuestion(id) {
+      if (!confirm('确定要删除此题目吗？')) return
+      try {
+        await http.delete(`/questions/${id}`)
+        this.loadQuestions()
+      } catch (e) {
+        console.error('删除题目失败', e)
+        if (e.message) alert(e.message)
+      }
+    },
+    async batchDeleteQuestions() {
+      if (this.selectedQuestions.length === 0) return
+      if (!confirm(`确定要删除选中的 ${this.selectedQuestions.length} 条题目吗？`)) return
+      try {
+        await http.post('/questions/batch-delete', { ids: this.selectedQuestions })
+        this.selectedQuestions = []
+        this.loadQuestions()
+      } catch (e) {
+        console.error('批量删除失败', e)
+        alert('删除失败')
+      }
+    },
+    addQuestionTextRow() {
+      this.questionForm.questionTexts.push({ questionText: '', language: '' })
+    },
+    removeQuestionText(index) {
+      this.questionForm.questionTexts.splice(index, 1)
+    },
+    handleQuestionTextSelectAll() {
+      if (this.isAllQuestionTextSelected) {
+        this.selectedQuestionTexts = this.questionForm.questionTexts.map((_, i) => i)
+      } else {
+        this.selectedQuestionTexts = []
+      }
+    },
+    deleteSelectedQuestionTexts() {
+      this.questionForm.questionTexts = this.questionForm.questionTexts.filter((_, i) => !this.selectedQuestionTexts.includes(i))
+      this.selectedQuestionTexts = []
+    },
+    getQuestionText(question, lang) {
+      if (!question.questionTexts || question.questionTexts.length === 0) return '-'
+      const text = question.questionTexts.find(t => t.language === lang)
+      return text ? text.questionText : question.questionTexts[0].questionText
+    },
+    getQuestionLanguage(question) {
+      if (!question.questionTexts || question.questionTexts.length === 0) return '-'
+      return question.questionTexts.map(t => t.language === 'ZH' ? '中文' : 'English').join('/')
+    },
+
+    // ==================== 答案相关方法 ====================
+    async loadAnswers() {
+      if (!this.editingQuestion) return
+      try {
+        const res = await http.get(`/questions/${this.editingQuestion.id}/answers`, {
+          pageNum: this.answerPageNum,
+          pageSize: this.answerPageSize
+        })
+        if (res.code === 200) {
+          this.answerList = res.data.list || []
+          this.answerTotal = res.data.total || 0
+        }
+      } catch (e) {
+        console.error('加载答案列表失败', e)
+      }
+    },
+    handleAnswerSelectAll() {
+      if (this.isAllAnswerSelected) {
+        this.selectedAnswers = this.answerList.map(item => item.id)
+      } else {
+        this.selectedAnswers = []
+      }
+    },
+    openAnswerModal(answer) {
+      this.editingAnswer = answer
+      this.answerForm = {
+        answerCode: answer ? answer.answerCode : '',
+        answerTexts: answer && answer.answerTexts ? answer.answerTexts.map(t => ({
+          answerText: t.answerText,
+          language: t.language,
+          createdBy: t.createdBy,
+          createdTime: t.createdTime
+        })) : [{ answerText: '', language: 'ZH' }]
+      }
+      this.selectedAnswerTexts = []
+      this.showAnswerModal = true
+    },
+    async saveAnswer() {
+      try {
+        // 验证语言唯一性
+        const languages = this.answerForm.answerTexts.map(t => t.language).filter(l => l)
+        const uniqueLanguages = [...new Set(languages)]
+        if (languages.length !== uniqueLanguages.length) {
+          alert('相同语言只能维护一个答案')
+          return
+        }
+
+        const data = {
+          answerTexts: this.answerForm.answerTexts.filter(t => t.answerText && t.language)
+        }
+
+        if (this.editingAnswer) {
+          await http.put(`/questions/answers/${this.editingAnswer.id}`, data)
+          alert('更新成功')
+        } else {
+          await http.post(`/questions/${this.editingQuestion.id}/answers`, data)
+          alert('创建成功')
+        }
+
+        this.showAnswerModal = false
+        this.loadAnswers()
+      } catch (e) {
+        console.error('保存答案失败', e)
+        alert('保存失败')
+      }
+    },
+    async deleteAnswer(id) {
+      if (!confirm('确定要删除此答案吗？')) return
+      try {
+        await http.delete(`/questions/answers/${id}`)
+        this.loadAnswers()
+      } catch (e) {
+        console.error('删除答案失败', e)
+        alert('删除失败')
+      }
+    },
+    async batchDeleteAnswers() {
+      if (this.selectedAnswers.length === 0) return
+      if (!confirm(`确定要删除选中的 ${this.selectedAnswers.length} 条答案吗？`)) return
+      try {
+        await http.post('/questions/answers/batch-delete', { ids: this.selectedAnswers })
+        this.selectedAnswers = []
+        this.loadAnswers()
+      } catch (e) {
+        console.error('批量删除失败', e)
+        alert('删除失败')
+      }
+    },
+    addAnswerTextRow() {
+      this.answerForm.answerTexts.push({ answerText: '', language: '' })
+    },
+    removeAnswerText(index) {
+      this.answerForm.answerTexts.splice(index, 1)
+    },
+    handleAnswerTextSelectAll() {
+      if (this.isAllAnswerTextSelected) {
+        this.selectedAnswerTexts = this.answerForm.answerTexts.map((_, i) => i)
+      } else {
+        this.selectedAnswerTexts = []
+      }
+    },
+    deleteSelectedAnswerTexts() {
+      this.answerForm.answerTexts = this.answerForm.answerTexts.filter((_, i) => !this.selectedAnswerTexts.includes(i))
+      this.selectedAnswerTexts = []
+    },
+    getAnswerText(answer, lang) {
+      if (!answer.answerTexts || answer.answerTexts.length === 0) return '-'
+      const text = answer.answerTexts.find(t => t.language === lang)
+      return text ? text.answerText : answer.answerTexts[0].answerText
+    },
+    getAnswerLanguage(answer) {
+      if (!answer.answerTexts || answer.answerTexts.length === 0) return '-'
+      return answer.answerTexts.map(t => t.language === 'ZH' ? '中文' : 'English').join('/')
     }
   }
 }
@@ -1649,6 +2271,54 @@ tr:hover {
   text-align: right;
 }
 
+/* 问卷配置样式 */
+.questionnaire-section {
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.questionnaire-section h4 {
+  margin-bottom: 12px;
+}
+
+.questionnaire-section .form-item {
+  flex: 1;
+  min-width: 100%;
+}
+
+.questionnaire-section textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 8px 11px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: 'Microsoft YaHei', Arial, sans-serif;
+  resize: vertical;
+}
+
+.questionnaire-section textarea:focus {
+  border-color: #1890ff;
+  outline: none;
+}
+
+.form-tip {
+  font-size: 12px;
+  color: #999;
+  margin-top: 4px;
+}
+
+.questionnaire-actions {
+  margin-top: 8px;
+  text-align: right;
+}
+
+.questionnaire-actions .btn {
+  margin-left: 8px;
+}
+
 /* 规则配置样式 */
 .rule-config {
   border: 1px solid #e8e8e8;
@@ -1741,5 +2411,98 @@ tr:hover {
 
 .collapse-icon.collapsed {
   transform: rotate(-90deg);
+}
+
+/* 问卷配置样式 */
+.questionnaire-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.questionnaire-header h4 {
+  margin: 0;
+}
+
+.btn-sm {
+  padding: 4px 12px;
+  font-size: 12px;
+}
+
+/* 问卷弹窗样式 */
+.questionnaire-modal {
+  width: 1000px;
+  max-width: 90vw;
+}
+
+.questionnaire-modal .modal-body {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.readonly-value {
+  display: inline-block;
+  padding: 6px 12px;
+  background: #f5f5f5;
+  border-radius: 4px;
+  color: #666;
+}
+
+/* 子表格样式 */
+.sub-section {
+  margin-top: 16px;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+}
+
+.sub-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #fafafa;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.sub-section-header h4 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.sub-table {
+  margin: 0;
+}
+
+.sub-table th,
+.sub-table td {
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+.table-input {
+  width: 100%;
+  padding: 4px 8px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.table-input:focus {
+  border-color: #1890ff;
+  outline: none;
+}
+
+.table-select {
+  padding: 4px 8px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-size: 13px;
+  min-width: 80px;
+}
+
+.table-select:focus {
+  border-color: #1890ff;
+  outline: none;
 }
 </style>

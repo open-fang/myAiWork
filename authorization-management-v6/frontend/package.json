@@ -4,15 +4,19 @@
   "description": "授权书管理系统前端",
   "scripts": {
     "serve": "vue-cli-service serve",
-    "build": "vue-cli-service build"
+    "build": "vue-cli-service build",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:report": "playwright show-report"
   },
   "dependencies": {
+    "axios": "^0.27.2",
     "vue": "^2.6.14",
     "vue-router": "^3.5.3",
-    "vuex": "^3.6.2",
-    "axios": "^0.27.2"
+    "vuex": "^3.6.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@vue/cli-service": "^5.0.8",
     "vue-template-compiler": "^2.6.14"
   }
