@@ -200,6 +200,12 @@ const CustomSelect = {
   data() {
     return { isOpen: false }
   },
+  mounted() {
+    document.addEventListener('click', this.handleClickOutside)
+  },
+  beforeDestroy() {
+    document.removeEventListener('click', this.handleClickOutside)
+  },
   computed: {
     selectedItems() {
       if (!this.value || (Array.isArray(this.value) && this.value.length === 0)) return []
@@ -211,6 +217,11 @@ const CustomSelect = {
     }
   },
   methods: {
+    handleClickOutside(e) {
+      if (!this.$el.contains(e.target)) {
+        this.isOpen = false
+      }
+    },
     toggleDropdown() { this.isOpen = !this.isOpen },
     selectOption(option) {
       const val = option.value || option.code
@@ -253,8 +264,8 @@ const CustomSelect = {
         <span class="arrow"></span>
       </div>
       <div class="select-dropdown" v-if="isOpen">
-        <div class="select-option" v-for="opt in options" :key="opt.value || opt.code" @click="selectOption(opt)">
-          <input v-if="multiple" type="checkbox" :checked="isSelected(opt)" />
+        <div class="select-option" v-for="opt in options" :key="opt.value || opt.code" @click.stop="selectOption(opt)">
+          <input v-if="multiple" type="checkbox" :checked="isSelected(opt)" class="option-checkbox" />
           <span>{{ opt.label || opt.name }}</span>
         </div>
       </div>
@@ -709,24 +720,29 @@ tr:hover {
   border: 1px solid #d9d9d9;
   border-radius: 4px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-  max-height: 300px;
+  max-height: 250px;
   overflow-y: auto;
   z-index: 1000;
 }
 
 .select-option {
-  padding: 8px 12px;
+  padding: 6px 10px;
   cursor: pointer;
   display: flex;
   align-items: center;
+  font-size: 13px;
 }
 
 .select-option:hover {
   background: #f5f5f5;
 }
 
-.select-option input {
-  margin-right: 8px;
+.option-checkbox {
+  width: 14px !important;
+  height: 14px !important;
+  margin-right: 8px !important;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
 /* 弹窗样式 */

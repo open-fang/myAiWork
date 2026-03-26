@@ -451,6 +451,12 @@ const CustomSelect = {
   data() {
     return { isOpen: false }
   },
+  mounted() {
+    document.addEventListener('click', this.handleClickOutside)
+  },
+  beforeDestroy() {
+    document.removeEventListener('click', this.handleClickOutside)
+  },
   computed: {
     selectedItems() {
       if (!this.value || (Array.isArray(this.value) && this.value.length === 0)) return []
@@ -462,6 +468,11 @@ const CustomSelect = {
     }
   },
   methods: {
+    handleClickOutside(e) {
+      if (!this.$el.contains(e.target)) {
+        this.isOpen = false
+      }
+    },
     toggleDropdown() { if (!this.disabled) this.isOpen = !this.isOpen },
     selectOption(option) {
       const val = option.value || option.code
@@ -504,8 +515,8 @@ const CustomSelect = {
         <span class="arrow"></span>
       </div>
       <div class="select-dropdown" v-if="isOpen && !disabled">
-        <div class="select-option" v-for="opt in options" :key="opt.value || opt.code" @click="selectOption(opt)">
-          <input v-if="multiple" type="checkbox" :checked="isSelected(opt)" />
+        <div class="select-option" v-for="opt in options" :key="opt.value || opt.code" @click.stop="selectOption(opt)">
+          <input v-if="multiple" type="checkbox" :checked="isSelected(opt)" class="option-checkbox" />
           <span>{{ opt.label || opt.name }}</span>
         </div>
       </div>
@@ -525,6 +536,12 @@ const TreeSelect = {
   data() {
     return { isOpen: false, expandedKeys: [] }
   },
+  mounted() {
+    document.addEventListener('click', this.handleClickOutside)
+  },
+  beforeDestroy() {
+    document.removeEventListener('click', this.handleClickOutside)
+  },
   computed: {
     selectedItems() {
       if (!this.value || this.value.length === 0) return []
@@ -535,6 +552,11 @@ const TreeSelect = {
     }
   },
   methods: {
+    handleClickOutside(e) {
+      if (!this.$el.contains(e.target)) {
+        this.isOpen = false
+      }
+    },
     findNode(nodes, code) {
       for (const node of nodes) {
         if (node.code === code) return node
@@ -546,14 +568,16 @@ const TreeSelect = {
       return null
     },
     toggleDropdown() { if (!this.disabled) this.isOpen = !this.isOpen },
-    toggleExpand(code) {
+    toggleExpand(code, e) {
+      e && e.stopPropagation()
       const index = this.expandedKeys.indexOf(code)
       if (index > -1) this.expandedKeys.splice(index, 1)
       else this.expandedKeys.push(code)
     },
     isExpanded(code) { return this.expandedKeys.includes(code) },
     isChecked(code) { return this.value && this.value.includes(code) },
-    toggleCheck(code) {
+    toggleCheck(code, e) {
+      e && e.stopPropagation()
       const newValue = this.value ? [...this.value] : []
       const index = newValue.indexOf(code)
       if (index > -1) newValue.splice(index, 1)
@@ -586,26 +610,26 @@ const TreeSelect = {
       <div class="select-dropdown tree-select-dropdown" v-if="isOpen && !disabled">
         <template v-for="node in options">
           <div class="tree-node" :key="node.code">
-            <div class="tree-node-content">
-              <span class="tree-toggle" v-if="node.children && node.children.length > 0" @click="toggleExpand(node.code)">{{ isExpanded(node.code) ? '▼' : '▶' }}</span>
-              <span v-else style="width: 20px; display: inline-block;"></span>
-              <input type="checkbox" :checked="isChecked(node.code)" @click="toggleCheck(node.code)" />
+            <div class="tree-node-content" @click.stop="toggleCheck(node.code)">
+              <span class="tree-toggle" v-if="node.children && node.children.length > 0" @click.stop="toggleExpand(node.code, $event)">{{ isExpanded(node.code) ? '▼' : '▶' }}</span>
+              <span v-else class="tree-toggle-placeholder"></span>
+              <input type="checkbox" :checked="isChecked(node.code)" @click.stop="toggleCheck(node.code)" class="option-checkbox" />
               <span>{{ node.name }}</span>
             </div>
             <div class="tree-children" v-if="node.children && isExpanded(node.code)">
               <template v-for="child in node.children">
                 <div class="tree-node" :key="child.code">
-                  <div class="tree-node-content" :style="{paddingLeft: '20px'}">
-                    <span class="tree-toggle" v-if="child.children && child.children.length > 0" @click="toggleExpand(child.code)">{{ isExpanded(child.code) ? '▼' : '▶' }}</span>
-                    <span v-else style="width: 20px; display: inline-block;"></span>
-                    <input type="checkbox" :checked="isChecked(child.code)" @click="toggleCheck(child.code)" />
+                  <div class="tree-node-content" @click.stop="toggleCheck(child.code)">
+                    <span class="tree-toggle" v-if="child.children && child.children.length > 0" @click.stop="toggleExpand(child.code, $event)">{{ isExpanded(child.code) ? '▼' : '▶' }}</span>
+                    <span v-else class="tree-toggle-placeholder"></span>
+                    <input type="checkbox" :checked="isChecked(child.code)" @click.stop="toggleCheck(child.code)" class="option-checkbox" />
                     <span>{{ child.name }}</span>
                   </div>
                   <div class="tree-children" v-if="child.children && isExpanded(child.code)">
                     <div v-for="grandChild in child.children" :key="grandChild.code" class="tree-node">
-                      <div class="tree-node-content" :style="{paddingLeft: '40px'}">
-                        <span style="width: 20px; display: inline-block;"></span>
-                        <input type="checkbox" :checked="isChecked(grandChild.code)" @click="toggleCheck(grandChild.code)" />
+                      <div class="tree-node-content" @click.stop="toggleCheck(grandChild.code)">
+                        <span class="tree-toggle-placeholder"></span>
+                        <input type="checkbox" :checked="isChecked(grandChild.code)" @click.stop="toggleCheck(grandChild.code)" class="option-checkbox" />
                         <span>{{ grandChild.name }}</span>
                       </div>
                     </div>
@@ -697,7 +721,7 @@ export default {
   },
   created() {
     this.id = this.$route.query.id
-    this.isNew = this.$route.query.mode === 'create'
+    this.isNew = this.$route.query.mode === 'create' || !this.$route.query.id
     this.isEdit = this.$route.query.mode === 'edit'
 
     this.loadLookupData()
@@ -842,7 +866,7 @@ export default {
             this.id = res.data
             this.isNew = false
             alert('保存成功')
-            this.$router.push({ path: '/#/AuthLetterDetail', query: { id: this.id } })
+            window.location.hash = '#/AuthLetterDetail?id=' + this.id
           }
         } else {
           await http.put(`/auth-letters/${this.id}`, data)
@@ -887,17 +911,17 @@ export default {
       try {
         await http.delete(`/auth-letters/${this.id}`)
         alert('删除成功')
-        this.$router.push('/#/AuthLetterList')
+        window.location.hash = '#/AuthLetterList'
       } catch (e) {
         console.error('删除失败', e)
         alert('删除失败')
       }
     },
     handleCancel() {
-      this.$router.push('/#/AuthLetterList')
+      window.location.hash = '#/AuthLetterList'
     },
     handleBack() {
-      this.$router.push('/#/AuthLetterList')
+      window.location.hash = '#/AuthLetterList'
     },
     handleAttachmentSelectAll() {
       this.selectedAttachments = this.isAllAttachmentSelected ? this.attachmentList.map(a => a.id) : []
@@ -1374,24 +1398,29 @@ tr:hover {
   border: 1px solid #d9d9d9;
   border-radius: 4px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-  max-height: 300px;
+  max-height: 250px;
   overflow-y: auto;
   z-index: 1000;
 }
 
 .select-option {
-  padding: 8px 12px;
+  padding: 6px 10px;
   cursor: pointer;
   display: flex;
   align-items: center;
+  font-size: 13px;
 }
 
 .select-option:hover {
   background: #f5f5f5;
 }
 
-.select-option input {
-  margin-right: 8px;
+.option-checkbox {
+  width: 14px !important;
+  height: 14px !important;
+  margin-right: 8px !important;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
 /* 树形选择器 */
@@ -1400,32 +1429,46 @@ tr:hover {
 }
 
 .tree-node {
-  padding: 4px 0;
+  padding: 2px 0;
 }
 
 .tree-node-content {
   display: flex;
   align-items: center;
-  padding: 4px 8px;
+  padding: 4px 6px;
   cursor: pointer;
+  border-radius: 4px;
 }
 
 .tree-node-content:hover {
   background: #f5f5f5;
 }
 
-.tree-node-content input {
-  margin-right: 8px;
-}
-
 .tree-toggle {
-  width: 20px;
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   color: #999;
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.tree-toggle:hover {
+  color: #1890ff;
+}
+
+.tree-toggle-placeholder {
+  width: 16px;
+  height: 16px;
+  display: inline-block;
+  flex-shrink: 0;
 }
 
 .tree-children {
-  padding-left: 20px;
+  padding-left: 16px;
 }
 
 /* 弹窗样式 */
