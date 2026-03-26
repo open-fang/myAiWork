@@ -49,7 +49,7 @@
         </div>
         <div class="form-item">
           <label>发布年份</label>
-          <input type="number" v-model="searchForm.publishYear" placeholder="请选择年份" />
+          <year-select v-model="searchForm.publishYear" />
         </div>
       </div>
       <div class="form-row">
@@ -101,7 +101,7 @@
             <td><input type="checkbox" v-model="selectedRows" :value="item.id" /></td>
             <td>{{ (pageNum - 1) * pageSize + index + 1 }}</td>
             <td>
-              <span v-if="item.status === 'DRAFT'" class="icon-edit" @click="handleEdit(item)">✏️</span>
+              <span v-if="item.status === 'DRAFT'" class="action-btn action-edit" @click="handleEdit(item)">编辑</span>
             </td>
             <td>
               <span class="link" @click="handleView(item)">{{ item.name }}</span>
@@ -184,6 +184,70 @@ const http = {
       headers: { 'Content-Type': 'application/json' }
     }).then(res => res.json())
   }
+}
+
+// 年份选择器组件
+const YearSelect = {
+  props: {
+    value: [Number, String]
+  },
+  data() {
+    return { isOpen: false }
+  },
+  mounted() {
+    document.addEventListener('click', this.handleClickOutside)
+  },
+  beforeDestroy() {
+    document.removeEventListener('click', this.handleClickOutside)
+  },
+  computed: {
+    currentYear() {
+      return new Date().getFullYear()
+    },
+    years() {
+      const center = this.currentYear
+      const years = []
+      for (let i = center - 5; i <= center + 5; i++) {
+        years.push(i)
+      }
+      return years
+    },
+    displayText() {
+      return this.value ? String(this.value) : '请选择年份'
+    }
+  },
+  methods: {
+    handleClickOutside(e) {
+      if (!this.$el.contains(e.target)) {
+        this.isOpen = false
+      }
+    },
+    toggleDropdown() {
+      this.isOpen = !this.isOpen
+    },
+    selectYear(year) {
+      this.$emit('input', year)
+      this.isOpen = false
+    }
+  },
+  template: `
+    <div class="custom-select">
+      <div class="select-trigger" @click="toggleDropdown">
+        <span :class="{ placeholder: !value }">{{ displayText }}</span>
+        <span class="arrow"></span>
+      </div>
+      <div class="select-dropdown year-dropdown" v-if="isOpen">
+        <div class="year-grid">
+          <div
+            v-for="year in years"
+            :key="year"
+            :class="['year-item', { selected: value === year }]"
+            @click.stop="selectYear(year)"
+          >{{ year }}</div>
+        </div>
+      </div>
+    </div>
+  `
 }
 
 // 自定义下拉选择器组件
@@ -303,7 +367,6 @@ const TreeSelect = {
     }
   },
   mounted() {
-    // 点击外部关闭下拉
     document.addEventListener('click', this.handleClickOutside)
   },
   beforeDestroy() {
@@ -337,8 +400,7 @@ const TreeSelect = {
     toggleDropdown() {
       this.isOpen = !this.isOpen
     },
-    toggleExpand(code, e) {
-      e && e.stopPropagation()
+    handleExpand(code) {
       const index = this.expandedKeys.indexOf(code)
       if (index > -1) {
         this.expandedKeys.splice(index, 1)
@@ -352,8 +414,7 @@ const TreeSelect = {
     isChecked(code) {
       return this.value && this.value.includes(code)
     },
-    toggleCheck(code, e) {
-      e && e.stopPropagation()
+    handleCheck(code) {
       const newValue = this.value ? [...this.value] : []
       const index = newValue.indexOf(code)
       if (index > -1) {
@@ -389,31 +450,31 @@ const TreeSelect = {
       <div class="select-dropdown tree-select-dropdown" v-if="isOpen">
         <div v-for="node in options" :key="node.code">
           <div class="tree-node">
-            <div class="tree-node-content" @click.stop="toggleCheck(node.code)">
-              <span class="tree-toggle" v-if="node.children && node.children.length > 0" @click.stop="toggleExpand(node.code, $event)">
+            <div class="tree-node-content">
+              <span class="tree-toggle" v-if="node.children && node.children.length > 0" @click="handleExpand(node.code)">
                 {{ isExpanded(node.code) ? '▼' : '▶' }}
               </span>
               <span v-else class="tree-toggle-placeholder"></span>
-              <input type="checkbox" :checked="isChecked(node.code)" @click.stop="toggleCheck(node.code)" class="option-checkbox" />
-              <span>{{ node.name }}</span>
+              <input type="checkbox" :checked="isChecked(node.code)" @change="handleCheck(node.code)" class="option-checkbox" />
+              <span class="tree-label" @click="handleCheck(node.code)">{{ node.name }}</span>
             </div>
             <div class="tree-children" v-if="node.children && isExpanded(node.code)">
               <div v-for="child in node.children" :key="child.code">
                 <div class="tree-node">
-                  <div class="tree-node-content" @click.stop="toggleCheck(child.code)">
-                    <span class="tree-toggle" v-if="child.children && child.children.length > 0" @click.stop="toggleExpand(child.code, $event)">
+                  <div class="tree-node-content">
+                    <span class="tree-toggle" v-if="child.children && child.children.length > 0" @click="handleExpand(child.code)">
                       {{ isExpanded(child.code) ? '▼' : '▶' }}
                     </span>
                     <span v-else class="tree-toggle-placeholder"></span>
-                    <input type="checkbox" :checked="isChecked(child.code)" @click.stop="toggleCheck(child.code)" class="option-checkbox" />
-                    <span>{{ child.name }}</span>
+                    <input type="checkbox" :checked="isChecked(child.code)" @change="handleCheck(child.code)" class="option-checkbox" />
+                    <span class="tree-label" @click="handleCheck(child.code)">{{ child.name }}</span>
                   </div>
                   <div class="tree-children" v-if="child.children && isExpanded(child.code)">
                     <div v-for="grandChild in child.children" :key="grandChild.code" class="tree-node">
-                      <div class="tree-node-content" @click.stop="toggleCheck(grandChild.code)">
+                      <div class="tree-node-content">
                         <span class="tree-toggle-placeholder"></span>
-                        <input type="checkbox" :checked="isChecked(grandChild.code)" @click.stop="toggleCheck(grandChild.code)" class="option-checkbox" />
-                        <span>{{ grandChild.name }}</span>
+                        <input type="checkbox" :checked="isChecked(grandChild.code)" @change="handleCheck(grandChild.code)" class="option-checkbox" />
+                        <span class="tree-label" @click="handleCheck(grandChild.code)">{{ grandChild.name }}</span>
                       </div>
                     </div>
                   </div>
@@ -431,7 +492,8 @@ export default {
   name: 'AuthLetterList',
   components: {
     CustomSelect,
-    TreeSelect
+    TreeSelect,
+    YearSelect
   },
   data() {
     return {
@@ -1002,6 +1064,57 @@ tr:hover {
 
 .tree-children {
   padding-left: 16px;
+}
+
+.tree-label {
+  cursor: pointer;
+  flex: 1;
+}
+
+/* 操作按钮样式 */
+.action-btn {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 8px;
+}
+
+.action-edit {
+  color: #1890ff;
+}
+
+.action-edit:hover {
+  background: #e6f7ff;
+}
+
+/* 年份选择器 */
+.year-dropdown {
+  padding: 8px;
+}
+
+.year-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.year-item {
+  padding: 8px 4px;
+  text-align: center;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.year-item:hover {
+  background: #f5f5f5;
+}
+
+.year-item.selected {
+  background: #1890ff;
+  color: #fff;
 }
 
 /* 按钮区域对齐 */

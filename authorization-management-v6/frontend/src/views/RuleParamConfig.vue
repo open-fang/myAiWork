@@ -56,7 +56,7 @@
             <td><input type="checkbox" v-model="selectedRows" :value="item.id" /></td>
             <td>{{ (pageNum - 1) * pageSize + index + 1 }}</td>
             <td>
-              <span class="icon-edit" @click="handleEdit(item)">✏️</span>
+              <span class="action-btn action-edit" @click="handleEdit(item)">编辑</span>
             </td>
             <td>{{ item.name }}</td>
             <td>{{ item.nameEn }}</td>
@@ -626,17 +626,30 @@ tr:hover {
   border-radius: 4px;
 }
 
-/* 操作图标 */
-.icon-edit {
-  color: #1890ff;
+/* 操作按钮样式 */
+.action-btn {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 12px;
+  border-radius: 4px;
   cursor: pointer;
-  font-size: 16px;
+  margin-right: 8px;
 }
 
-.icon-delete {
+.action-edit {
+  color: #1890ff;
+}
+
+.action-edit:hover {
+  background: #e6f7ff;
+}
+
+.action-delete {
   color: #ff4d4f;
-  cursor: pointer;
-  font-size: 16px;
+}
+
+.action-delete:hover {
+  background: #fff1f0;
 }
 
 /* 状态标签 */
