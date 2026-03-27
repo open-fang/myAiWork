@@ -666,50 +666,34 @@
             <div class="sub-section-header">
               <h4>可选答案</h4>
               <div>
-                <button class="btn btn-link" @click="addAnswerTextRow">+ 添加行</button>
-                <button class="btn btn-link" @click="deleteSelectedAnswerTexts" :disabled="selectedAnswerTexts.length === 0">删除</button>
+                <button class="btn btn-link" @click="addAnswerItem">+ 添加行</button>
+                <button class="btn btn-link" @click="deleteSelectedAnswerItems" :disabled="selectedAnswerItems.length === 0">删除</button>
               </div>
             </div>
-            <table class="sub-table">
+            <table class="sub-table answer-group-table">
               <thead>
                 <tr>
-                  <th><input type="checkbox" v-model="isAllAnswerTextSelected" @change="handleAnswerTextSelectAll" /></th>
-                  <th>序号</th>
-                  <th>操作</th>
-                  <th>答案</th>
-                  <th>语言</th>
-                  <th>创建人</th>
-                  <th>创建时间</th>
-                  <th>更新人</th>
-                  <th>更新时间</th>
+                  <th style="width: 40px;"><input type="checkbox" v-model="isAllAnswerItemSelected" @change="handleAnswerItemSelectAll" /></th>
+                  <th style="width: 50px;">序号</th>
+                  <th style="width: 60px;">操作</th>
+                  <th>中文答案</th>
+                  <th>英文答案</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(item, index) in answerForm.answerTexts" :key="index">
-                  <td><input type="checkbox" v-model="selectedAnswerTexts" :value="index" /></td>
+                <tr v-for="(item, index) in answerForm.answerItems" :key="index">
+                  <td><input type="checkbox" v-model="selectedAnswerItems" :value="index" /></td>
                   <td>{{ index + 1 }}</td>
-                  <td><span class="action-btn action-delete" @click="removeAnswerText(index)">删除</span></td>
-                  <td><input type="text" v-model="item.answerText" placeholder="请输入答案" class="table-input" /></td>
-                  <td>
-                    <select v-model="item.language" class="table-select">
-                      <option value="">请选择</option>
-                      <option value="ZH">中文</option>
-                      <option value="EN">English</option>
-                    </select>
-                  </td>
-                  <td>{{ item.createdBy || '-' }}</td>
-                  <td>{{ item.createdTime || '-' }}</td>
-                  <td>{{ item.updatedBy || '-' }}</td>
-                  <td>{{ item.updatedTime || '-' }}</td>
+                  <td><span class="action-btn action-delete" @click="removeAnswerItem(index)">删除</span></td>
+                  <td><input type="text" v-model="item.zhText" placeholder="请输入中文答案" class="table-input" /></td>
+                  <td><input type="text" v-model="item.enText" placeholder="Please input English answer" class="table-input" /></td>
                 </tr>
-                <tr v-if="answerForm.answerTexts.length === 0">
-                  <td colspan="9" style="text-align: center; color: #999;">请点击"添加行"添加答案内容</td>
+                <tr v-if="answerForm.answerItems.length === 0">
+                  <td colspan="5" style="text-align: center; color: #999;">请点击"添加行"添加答案内容</td>
                 </tr>
               </tbody>
             </table>
-            <div class="pagination" v-if="answerForm.answerTexts.length > 10">
-              <span>共 {{ answerForm.answerTexts.length }} 条</span>
-            </div>
+            <div class="form-tip" style="margin-top: 8px;">每个答案可同时维护中英文两个版本，方便多语言管理。</div>
           </div>
         </div>
         <div class="modal-footer">
@@ -1131,10 +1115,10 @@ export default {
       editingAnswer: null,
       answerForm: {
         answerCode: '',
-        answerTexts: []
+        answerItems: [] // [{ zhText: '', enText: '' }, ...]
       },
-      selectedAnswerTexts: [],
-      isAllAnswerTextSelected: false,
+      selectedAnswerItems: [],
+      isAllAnswerItemSelected: false,
       languageOptions: [
         { value: 'ZH', label: '中文' },
         { value: 'EN', label: 'English' }
@@ -1705,29 +1689,57 @@ export default {
     },
     openAnswerModal(answer) {
       this.editingAnswer = answer
+      // 转换数据格式：从 answerTexts 数组转换为 answerItems 分组表格格式
+      let answerItems = []
+      if (answer && answer.answerTexts && answer.answerTexts.length > 0) {
+        // 按答案内容分组（相同答案内容的中英文版本放在一起）
+        const grouped = {}
+        answer.answerTexts.forEach(t => {
+          const key = t.answerText // 以答案内容作为分组key
+          if (!grouped[key]) {
+            grouped[key] = { zhText: '', enText: '' }
+          }
+          if (t.language === 'ZH') {
+            grouped[key].zhText = t.answerText
+          } else if (t.language === 'EN') {
+            grouped[key].enText = t.answerText
+          }
+        })
+        answerItems = Object.values(grouped)
+      }
+      // 如果没有数据，添加一个空行
+      if (answerItems.length === 0) {
+        answerItems = [{ zhText: '', enText: '' }]
+      }
       this.answerForm = {
         answerCode: answer ? answer.answerCode : '',
-        answerTexts: answer && answer.answerTexts ? answer.answerTexts.map(t => ({
-          answerText: t.answerText,
-          language: t.language,
-          createdBy: t.createdBy,
-          createdTime: t.createdTime
-        })) : [{ answerText: '', language: 'ZH' }]
+        answerItems: answerItems
       }
-      this.selectedAnswerTexts = []
+      this.selectedAnswerItems = []
       this.showAnswerModal = true
     },
     async saveAnswer() {
       try {
         // 验证是否有有效的答案文本
-        const validTexts = this.answerForm.answerTexts.filter(t => t.answerText && t.language)
-        if (validTexts.length === 0) {
+        const validItems = this.answerForm.answerItems.filter(item => item.zhText || item.enText)
+        if (validItems.length === 0) {
           alert('请至少添加一条有效的答案内容')
           return
         }
 
+        // 转换数据格式：从 answerItems 分组表格格式转换为 answerTexts 数组
+        const answerTexts = []
+        validItems.forEach(item => {
+          if (item.zhText) {
+            answerTexts.push({ answerText: item.zhText, language: 'ZH' })
+          }
+          if (item.enText) {
+            answerTexts.push({ answerText: item.enText, language: 'EN' })
+          }
+        })
+
         const data = {
-          answerTexts: validTexts
+          answerTexts: answerTexts
         }
 
         if (this.editingAnswer) {
@@ -1767,22 +1779,22 @@ export default {
         alert('删除失败')
       }
     },
-    addAnswerTextRow() {
-      this.answerForm.answerTexts.push({ answerText: '', language: '' })
+    addAnswerItem() {
+      this.answerForm.answerItems.push({ zhText: '', enText: '' })
     },
-    removeAnswerText(index) {
-      this.answerForm.answerTexts.splice(index, 1)
+    removeAnswerItem(index) {
+      this.answerForm.answerItems.splice(index, 1)
     },
-    handleAnswerTextSelectAll() {
-      if (this.isAllAnswerTextSelected) {
-        this.selectedAnswerTexts = this.answerForm.answerTexts.map((_, i) => i)
+    handleAnswerItemSelectAll() {
+      if (this.isAllAnswerItemSelected) {
+        this.selectedAnswerItems = this.answerForm.answerItems.map((_, i) => i)
       } else {
-        this.selectedAnswerTexts = []
+        this.selectedAnswerItems = []
       }
     },
-    deleteSelectedAnswerTexts() {
-      this.answerForm.answerTexts = this.answerForm.answerTexts.filter((_, i) => !this.selectedAnswerTexts.includes(i))
-      this.selectedAnswerTexts = []
+    deleteSelectedAnswerItems() {
+      this.answerForm.answerItems = this.answerForm.answerItems.filter((_, i) => !this.selectedAnswerItems.includes(i))
+      this.selectedAnswerItems = []
     },
     getAnswerText(answer, lang) {
       if (!answer.answerTexts || answer.answerTexts.length === 0) return '-'
@@ -2618,5 +2630,21 @@ tr:hover {
 
 .scene-question-delete:hover {
   color: #ff4d4f;
+}
+
+/* 答案分组表格样式 */
+.answer-group-table th:nth-child(4),
+.answer-group-table td:nth-child(4) {
+  background: #fffbe6;
+}
+
+.answer-group-table th:nth-child(5),
+.answer-group-table td:nth-child(5) {
+  background: #e6f7ff;
+}
+
+.answer-group-table .table-input {
+  width: 100%;
+  background: transparent;
 }
 </style>
