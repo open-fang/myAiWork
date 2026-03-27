@@ -1719,16 +1719,15 @@ export default {
     },
     async saveAnswer() {
       try {
-        // 验证语言唯一性
-        const languages = this.answerForm.answerTexts.map(t => t.language).filter(l => l)
-        const uniqueLanguages = [...new Set(languages)]
-        if (languages.length !== uniqueLanguages.length) {
-          alert('相同语言只能维护一个答案')
+        // 验证是否有有效的答案文本
+        const validTexts = this.answerForm.answerTexts.filter(t => t.answerText && t.language)
+        if (validTexts.length === 0) {
+          alert('请至少添加一条有效的答案内容')
           return
         }
 
         const data = {
-          answerTexts: this.answerForm.answerTexts.filter(t => t.answerText && t.language)
+          answerTexts: validTexts
         }
 
         if (this.editingAnswer) {
