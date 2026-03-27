@@ -285,24 +285,6 @@
             </div>
           </div>
 
-          <!-- 问卷配置 -->
-          <div class="questionnaire-section">
-            <div class="questionnaire-header">
-              <h4>问卷配置</h4>
-              <button class="btn btn-primary btn-sm" @click="openQuestionnaireConfig">问卷题目配置</button>
-            </div>
-            <div class="form-item" style="flex: 1;">
-              <label>问卷设计</label>
-              <textarea
-                v-model="sceneForm.questionnaire"
-                placeholder="请输入问卷内容（JSON格式）"
-                maxlength="4000"
-                style="min-height: 80px;"
-              ></textarea>
-              <div class="form-tip">问卷内容支持JSON格式，用于定义问卷问题和选项。也可通过"问卷题目配置"按钮进行可视化配置。</div>
-            </div>
-          </div>
-
           <!-- 规则配置 -->
           <div class="rule-config">
             <h4>规则配置</h4>
@@ -381,6 +363,36 @@
                 <span class="icon-delete" @click="removeCondition(sceneForm.conditions, index)">🗑️</span>
               </div>
             </div>
+          </div>
+
+          <!-- 问卷配置 -->
+          <div class="questionnaire-section">
+            <div class="questionnaire-header">
+              <h4>问卷配置</h4>
+              <button class="btn btn-link" @click="addSceneQuestion">+ 问卷题目</button>
+              <button class="btn btn-primary btn-sm" @click="openQuestionnaireConfig">问卷题目配置</button>
+            </div>
+            <!-- 已配置的问卷题目列表 -->
+            <div class="scene-question-list" v-if="sceneForm.sceneQuestions && sceneForm.sceneQuestions.length > 0">
+              <div class="scene-question-item" v-for="(sq, index) in sceneForm.sceneQuestions" :key="index">
+                <div class="scene-question-select">
+                  <label>题目：</label>
+                  <select v-model="sq.questionId" @change="onQuestionChange(sq)" style="flex: 1;">
+                    <option value="">请选择题目</option>
+                    <option v-for="q in allQuestions" :key="q.id" :value="q.id">{{ getQuestionText(q, 'ZH') }}</option>
+                  </select>
+                </div>
+                <div class="scene-question-answer" v-if="sq.questionId">
+                  <label>正确答案：</label>
+                  <select v-model="sq.correctAnswerId" style="flex: 1;">
+                    <option value="">请选择答案</option>
+                    <option v-for="a in sq.availableAnswers" :key="a.id" :value="a.id">{{ getAnswerText(a, 'ZH') }}</option>
+                  </select>
+                </div>
+                <span class="scene-question-delete" @click="removeSceneQuestion(index)">删除</span>
+              </div>
+            </div>
+            <div class="form-tip" v-else>点击"+问卷题目"添加问卷题目，或通过"问卷题目配置"按钮管理题目库。</div>
           </div>
         </div>
         <div class="modal-footer">
@@ -637,7 +649,7 @@
 
     <!-- 问卷答案维护弹窗 -->
     <div class="modal-overlay" v-if="showAnswerModal">
-      <div class="modal-content" style="width: 700px;">
+      <div class="modal-content" style="width: 800px;">
         <div class="modal-header">
           <h3>{{ editingAnswer ? '编辑答案' : '新增答案' }}</h3>
           <span class="modal-close" @click="showAnswerModal = false">&times;</span>
@@ -649,10 +661,10 @@
             <span class="readonly-value">{{ answerForm.answerCode || '自动生成' }}</span>
           </div>
 
-          <!-- 答案表格 -->
+          <!-- 可选答案表格 -->
           <div class="sub-section">
             <div class="sub-section-header">
-              <h4>答案内容</h4>
+              <h4>可选答案</h4>
               <div>
                 <button class="btn btn-link" @click="addAnswerTextRow">+ 添加行</button>
                 <button class="btn btn-link" @click="deleteSelectedAnswerTexts" :disabled="selectedAnswerTexts.length === 0">删除</button>
@@ -668,6 +680,8 @@
                   <th>语言</th>
                   <th>创建人</th>
                   <th>创建时间</th>
+                  <th>更新人</th>
+                  <th>更新时间</th>
                 </tr>
               </thead>
               <tbody>
@@ -685,12 +699,17 @@
                   </td>
                   <td>{{ item.createdBy || '-' }}</td>
                   <td>{{ item.createdTime || '-' }}</td>
+                  <td>{{ item.updatedBy || '-' }}</td>
+                  <td>{{ item.updatedTime || '-' }}</td>
                 </tr>
                 <tr v-if="answerForm.answerTexts.length === 0">
-                  <td colspan="7" style="text-align: center; color: #999;">请点击"添加行"添加答案内容</td>
+                  <td colspan="9" style="text-align: center; color: #999;">请点击"添加行"添加答案内容</td>
                 </tr>
               </tbody>
             </table>
+            <div class="pagination" v-if="answerForm.answerTexts.length > 10">
+              <span>共 {{ answerForm.answerTexts.length }} 条</span>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -1061,7 +1080,7 @@ export default {
         businessScene: '',
         decisionLevel: '',
         specificRule: '',
-        questionnaire: '',
+        sceneQuestions: [], // 场景问卷题目配置
         conditions: []
       },
       uploadForm: {
@@ -1119,7 +1138,9 @@ export default {
       languageOptions: [
         { value: 'ZH', label: '中文' },
         { value: 'EN', label: 'English' }
-      ]
+      ],
+      // 场景问卷题目相关
+      allQuestions: [] // 所有题目列表，用于场景问卷选择
     }
   },
   computed: {
@@ -1378,10 +1399,11 @@ export default {
         businessScene: '',
         decisionLevel: '',
         specificRule: '',
-        questionnaire: '',
+        sceneQuestions: [],
         conditions: []
       }
       this.showSceneModal = true
+      this.loadAllQuestions()
     },
     handleEditScene(scene) {
       this.editingScene = scene
@@ -1391,10 +1413,11 @@ export default {
         businessScene: scene.businessScene,
         decisionLevel: scene.decisionLevel,
         specificRule: scene.specificRule,
-        questionnaire: scene.questionnaire || '',
+        sceneQuestions: scene.sceneQuestions || [],
         conditions: []
       }
       this.showSceneModal = true
+      this.loadAllQuestions()
     },
     async handleSaveScene() {
       try {
@@ -1770,6 +1793,48 @@ export default {
     getAnswerLanguage(answer) {
       if (!answer.answerTexts || answer.answerTexts.length === 0) return '-'
       return answer.answerTexts.map(t => t.language === 'ZH' ? '中文' : 'English').join('/')
+    },
+
+    // ==================== 场景问卷题目相关方法 ====================
+    async loadAllQuestions() {
+      try {
+        const res = await http.get('/questions', { pageNum: 1, pageSize: 1000 })
+        if (res.code === 200) {
+          this.allQuestions = res.data.list || []
+        }
+      } catch (e) {
+        console.error('加载题目列表失败', e)
+      }
+    },
+    addSceneQuestion() {
+      if (!this.sceneForm.sceneQuestions) {
+        this.sceneForm.sceneQuestions = []
+      }
+      this.sceneForm.sceneQuestions.push({
+        questionId: '',
+        correctAnswerId: '',
+        availableAnswers: []
+      })
+    },
+    removeSceneQuestion(index) {
+      this.sceneForm.sceneQuestions.splice(index, 1)
+    },
+    async onQuestionChange(sq) {
+      // 清空已选答案
+      sq.correctAnswerId = ''
+      sq.availableAnswers = []
+
+      if (sq.questionId) {
+        // 加载该题目的答案列表
+        try {
+          const res = await http.get(`/questions/${sq.questionId}/answers`, { pageNum: 1, pageSize: 100 })
+          if (res.code === 200) {
+            sq.availableAnswers = res.data.list || []
+          }
+        } catch (e) {
+          console.error('加载答案列表失败', e)
+        }
+      }
     }
   }
 }
@@ -2504,5 +2569,55 @@ tr:hover {
 .table-select:focus {
   border-color: #1890ff;
   outline: none;
+}
+
+/* 场景问卷题目列表样式 */
+.scene-question-list {
+  margin-top: 12px;
+}
+
+.scene-question-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px;
+  background: #fafafa;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.scene-question-select,
+.scene-question-answer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.scene-question-select label,
+.scene-question-answer label {
+  white-space: nowrap;
+  font-size: 13px;
+  color: #666;
+}
+
+.scene-question-select select,
+.scene-question-answer select {
+  height: 32px;
+  padding: 4px 8px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.scene-question-delete {
+  color: #999;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 4px 8px;
+}
+
+.scene-question-delete:hover {
+  color: #ff4d4f;
 }
 </style>

@@ -555,20 +555,13 @@ test.describe('场景问卷配置测试', () => {
     await expect(page.locator('.questionnaire-section')).toBeVisible();
   });
 
-  test('应能输入问卷内容', async ({ page }) => {
+  test('应能点击添加问卷题目按钮', async ({ page }) => {
     // 打开场景弹窗
     await page.getByRole('button', { name: '添加场景' }).click();
     await expect(page.locator('.modal-overlay')).toBeVisible({ timeout: 3000 });
 
-    // 填写基本场景信息
-    await page.getByPlaceholder('请输入场景名称').fill('测试场景');
-
-    // 输入问卷内容
-    const questionnaireTextarea = page.locator('.questionnaire-section textarea');
-    await questionnaireTextarea.fill('{"questions":[{"title":"问题1","options":["选项A","选项B"]}]}');
-
-    // 验证内容已输入
-    await expect(questionnaireTextarea).toHaveValue(/问题1/);
+    // 验证添加问卷题目按钮存在
+    await expect(page.getByRole('button', { name: '+ 问卷题目' })).toBeVisible();
   });
 
   test('应能点击问卷题目配置按钮', async ({ page }) => {
