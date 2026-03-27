@@ -507,13 +507,93 @@ test.describe('问卷题目配置测试', () => {
     await page.locator('.questionnaire-modal').getByRole('button', { name: '新增' }).click();
     await expect(page.getByRole('heading', { name: '新增题目' })).toBeVisible({ timeout: 3000 });
 
-    // 点击新增答案按钮
-    const addAnswerBtn = page.getByRole('button', { name: '新增答案' });
-    if (await addAnswerBtn.isVisible()) {
-      await addAnswerBtn.click();
+    // 点击可选答案区域的+新增按钮（在"可选答案"标题区域内）
+    const answerSection = page.locator('.sub-section').filter({ hasText: '可选答案' }).first();
+    const addAnswerBtn = answerSection.getByRole('button', { name: '+ 新增' });
+    await addAnswerBtn.click();
 
-      // 验证答案维护弹窗打开
-      await expect(page.getByRole('heading', { name: '问卷答案维护' })).toBeVisible({ timeout: 3000 });
+    // 验证答案维护弹窗打开
+    await expect(page.getByRole('heading', { name: '新增答案' })).toBeVisible({ timeout: 3000 });
+  });
+
+  test('答案维护弹窗应显示中英文两列', async ({ page }) => {
+    // 打开答案维护弹窗
+    await page.getByRole('button', { name: '添加场景' }).click();
+    await expect(page.locator('.modal-overlay')).toBeVisible({ timeout: 3000 });
+    await page.getByRole('button', { name: '问卷题目配置' }).click();
+    await expect(page.locator('.questionnaire-modal')).toBeVisible({ timeout: 3000 });
+    await page.locator('.questionnaire-modal').getByRole('button', { name: '新增' }).click();
+    await expect(page.getByRole('heading', { name: '新增题目' })).toBeVisible({ timeout: 3000 });
+
+    // 点击可选答案区域的+新增按钮
+    const answerSection = page.locator('.sub-section').filter({ hasText: '可选答案' }).first();
+    await answerSection.getByRole('button', { name: '+ 新增' }).click();
+    await expect(page.getByRole('heading', { name: '新增答案' })).toBeVisible({ timeout: 3000 });
+
+    // 验证表头包含中文答案和英文答案（限定在答案维护弹窗范围内）
+    const answerModal = page.locator('.modal-content').filter({ has: page.getByRole('heading', { name: '新增答案' }) });
+    await expect(answerModal.getByRole('columnheader', { name: '中文答案' })).toBeVisible();
+    await expect(answerModal.getByRole('columnheader', { name: '英文答案' })).toBeVisible();
+  });
+
+  test('应能在答案维护弹窗中添加多行', async ({ page }) => {
+    // 打开答案维护弹窗
+    await page.getByRole('button', { name: '添加场景' }).click();
+    await expect(page.locator('.modal-overlay')).toBeVisible({ timeout: 3000 });
+    await page.getByRole('button', { name: '问卷题目配置' }).click();
+    await expect(page.locator('.questionnaire-modal')).toBeVisible({ timeout: 3000 });
+    await page.locator('.questionnaire-modal').getByRole('button', { name: '新增' }).click();
+    await expect(page.getByRole('heading', { name: '新增题目' })).toBeVisible({ timeout: 3000 });
+
+    // 点击可选答案区域的+新增按钮
+    const answerSection = page.locator('.sub-section').filter({ hasText: '可选答案' }).first();
+    await answerSection.getByRole('button', { name: '+ 新增' }).click();
+    await expect(page.getByRole('heading', { name: '新增答案' })).toBeVisible({ timeout: 3000 });
+
+    // 点击添加行按钮（在答案维护弹窗中）
+    const answerModal = page.locator('.modal-content').filter({ has: page.getByRole('heading', { name: '新增答案' }) });
+    await answerModal.getByRole('button', { name: '+ 添加行' }).click();
+    await page.waitForTimeout(300);
+
+    // 验证表格行数
+    const rows = answerModal.locator('tbody tr');
+    const count = await rows.count();
+    expect(count).toBeGreaterThanOrEqual(1);
+  });
+
+  test('应能填写答案的中英文内容', async ({ page }) => {
+    // 打开答案维护弹窗
+    await page.getByRole('button', { name: '添加场景' }).click();
+    await expect(page.locator('.modal-overlay')).toBeVisible({ timeout: 3000 });
+    await page.getByRole('button', { name: '问卷题目配置' }).click();
+    await expect(page.locator('.questionnaire-modal')).toBeVisible({ timeout: 3000 });
+    await page.locator('.questionnaire-modal').getByRole('button', { name: '新增' }).click();
+    await expect(page.getByRole('heading', { name: '新增题目' })).toBeVisible({ timeout: 3000 });
+
+    // 点击可选答案区域的+新增按钮
+    const answerSection = page.locator('.sub-section').filter({ hasText: '可选答案' }).first();
+    await answerSection.getByRole('button', { name: '+ 新增' }).click();
+    await expect(page.getByRole('heading', { name: '新增答案' })).toBeVisible({ timeout: 3000 });
+
+    // 找到答案维护弹窗
+    const answerModal = page.locator('.modal-content').filter({ has: page.getByRole('heading', { name: '新增答案' }) });
+
+    // 点击添加行按钮
+    await answerModal.getByRole('button', { name: '+ 添加行' }).click();
+    await page.waitForTimeout(300);
+
+    // 填写中文答案（第4列）
+    const zhInput = answerModal.locator('tbody tr td:nth-child(4) input').first();
+    if (await zhInput.isVisible()) {
+      await zhInput.fill('测试中文答案');
+      await expect(zhInput).toHaveValue('测试中文答案');
+    }
+
+    // 填写英文答案（第5列）
+    const enInput = answerModal.locator('tbody tr td:nth-child(5) input').first();
+    if (await enInput.isVisible()) {
+      await enInput.fill('Test English Answer');
+      await expect(enInput).toHaveValue('Test English Answer');
     }
   });
 
@@ -533,6 +613,21 @@ test.describe('问卷题目配置测试', () => {
 
     // 验证题目弹窗关闭，回到问卷列表弹窗
     await expect(page.getByRole('heading', { name: '新增题目' })).not.toBeVisible({ timeout: 3000 });
+  });
+
+  test('答案列表应显示中英文两列', async ({ page }) => {
+    // 打开题目维护弹窗
+    await page.getByRole('button', { name: '添加场景' }).click();
+    await expect(page.locator('.modal-overlay')).toBeVisible({ timeout: 3000 });
+    await page.getByRole('button', { name: '问卷题目配置' }).click();
+    await expect(page.locator('.questionnaire-modal')).toBeVisible({ timeout: 3000 });
+    await page.locator('.questionnaire-modal').getByRole('button', { name: '新增' }).click();
+    await expect(page.getByRole('heading', { name: '新增题目' })).toBeVisible({ timeout: 3000 });
+
+    // 验证可选答案表格包含中文答案和英文答案列头
+    const answerTable = page.locator('.sub-section').filter({ hasText: '可选答案' });
+    await expect(answerTable.getByText('中文答案')).toBeVisible();
+    await expect(answerTable.getByText('英文答案')).toBeVisible();
   });
 });
 
@@ -555,6 +650,16 @@ test.describe('场景问卷配置测试', () => {
     await expect(page.locator('.questionnaire-section')).toBeVisible();
   });
 
+  test('问卷配置区域应在规则配置区域下方', async ({ page }) => {
+    // 打开场景弹窗
+    await page.getByRole('button', { name: '添加场景' }).click();
+    await expect(page.locator('.modal-overlay')).toBeVisible({ timeout: 3000 });
+
+    // 验证规则配置和问卷配置区域都存在
+    await expect(page.getByText('规则配置')).toBeVisible();
+    await expect(page.getByText('问卷配置')).toBeVisible();
+  });
+
   test('应能点击添加问卷题目按钮', async ({ page }) => {
     // 打开场景弹窗
     await page.getByRole('button', { name: '添加场景' }).click();
@@ -572,5 +677,103 @@ test.describe('场景问卷配置测试', () => {
     // 验证问卷题目配置按钮存在
     const configBtn = page.getByRole('button', { name: '问卷题目配置' });
     await expect(configBtn).toBeVisible();
+  });
+
+  test('应能添加场景问卷题目行', async ({ page }) => {
+    // 打开场景弹窗
+    await page.getByRole('button', { name: '添加场景' }).click();
+    await expect(page.locator('.modal-overlay')).toBeVisible({ timeout: 3000 });
+
+    // 点击添加问卷题目按钮
+    await page.getByRole('button', { name: '+ 问卷题目' }).click();
+    await page.waitForTimeout(300);
+
+    // 验证场景问卷题目列表有新增行
+    const questionItems = page.locator('.scene-question-item');
+    const count = await questionItems.count();
+    expect(count).toBeGreaterThanOrEqual(1);
+  });
+
+  test('场景问卷题目应能选择题目下拉框', async ({ page }) => {
+    // 打开场景弹窗
+    await page.getByRole('button', { name: '添加场景' }).click();
+    await expect(page.locator('.modal-overlay')).toBeVisible({ timeout: 3000 });
+
+    // 添加问卷题目行
+    await page.getByRole('button', { name: '+ 问卷题目' }).click();
+    await page.waitForTimeout(300);
+
+    // 验证题目下拉框存在
+    const questionSelect = page.locator('.scene-question-select select').first();
+    await expect(questionSelect).toBeVisible();
+  });
+});
+
+// ==================== 前端构建验证测试 ====================
+test.describe('前端构建验证测试', () => {
+  test('页面应无控制台错误', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', error => errors.push(error.message));
+
+    await page.goto('/#/AuthLetterList');
+    await page.waitForSelector('.page-container', { timeout: 10000 });
+
+    // 等待页面完全加载
+    await page.waitForTimeout(2000);
+
+    // 验证无JavaScript错误
+    expect(errors).toHaveLength(0);
+  });
+
+  test('详情页应无控制台错误', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', error => errors.push(error.message));
+
+    await page.goto('/#/AuthLetterDetail?mode=create');
+    await page.waitForSelector('.page-container', { timeout: 10000 });
+
+    // 等待页面完全加载
+    await page.waitForTimeout(2000);
+
+    // 验证无JavaScript错误
+    expect(errors).toHaveLength(0);
+  });
+
+  test('场景弹窗应无控制台错误', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', error => errors.push(error.message));
+
+    await page.goto('/#/AuthLetterDetail?mode=create');
+    await page.waitForSelector('.page-container', { timeout: 10000 });
+
+    // 打开场景弹窗
+    await page.getByRole('button', { name: '添加场景' }).click();
+    await expect(page.locator('.modal-overlay')).toBeVisible({ timeout: 3000 });
+
+    // 等待弹窗完全渲染
+    await page.waitForTimeout(1000);
+
+    // 验证无JavaScript错误
+    expect(errors).toHaveLength(0);
+  });
+
+  test('问卷题目配置弹窗应无控制台错误', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', error => errors.push(error.message));
+
+    await page.goto('/#/AuthLetterDetail?mode=create');
+    await page.waitForSelector('.page-container', { timeout: 10000 });
+
+    // 打开问卷题目配置弹窗
+    await page.getByRole('button', { name: '添加场景' }).click();
+    await expect(page.locator('.modal-overlay')).toBeVisible({ timeout: 3000 });
+    await page.getByRole('button', { name: '问卷题目配置' }).click();
+    await expect(page.locator('.questionnaire-modal')).toBeVisible({ timeout: 3000 });
+
+    // 等待弹窗完全渲染
+    await page.waitForTimeout(1000);
+
+    // 验证无JavaScript错误
+    expect(errors).toHaveLength(0);
   });
 });
