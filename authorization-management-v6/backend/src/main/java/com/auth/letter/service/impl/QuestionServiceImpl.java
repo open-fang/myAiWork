@@ -206,9 +206,6 @@ public class QuestionServiceImpl implements QuestionService {
             throw new RuntimeException("题目不存在");
         }
 
-        // 验证语言唯一性
-        validateAnswerLanguageUniqueness(request.getAnswerTexts(), null);
-
         // 生成答案编号
         String answerCode = generateAnswerCode();
 
@@ -242,9 +239,6 @@ public class QuestionServiceImpl implements QuestionService {
         if (answer == null) {
             throw new RuntimeException("答案不存在");
         }
-
-        // 验证语言唯一性
-        validateAnswerLanguageUniqueness(request.getAnswerTexts(), id);
 
         // 更新答案主表
         if (request.getSortOrder() != null) {
@@ -368,18 +362,4 @@ public class QuestionServiceImpl implements QuestionService {
         }
     }
 
-    private void validateAnswerLanguageUniqueness(List<AnswerTextRequest> texts, Long excludeAnswerId) {
-        if (texts == null || texts.isEmpty()) {
-            return;
-        }
-
-        for (AnswerTextRequest text : texts) {
-            if (text.getLanguage() != null) {
-                int count = answerDao.countTextByLanguage(excludeAnswerId, text.getLanguage(), null);
-                if (count > 0) {
-                    throw new RuntimeException("相同语言只能维护一个答案");
-                }
-            }
-        }
     }
-}

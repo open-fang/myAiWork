@@ -607,26 +607,28 @@
                   <th>序号</th>
                   <th>操作</th>
                   <th>答案编号</th>
-                  <th>答案</th>
-                  <th>语言</th>
+                  <th>中文答案</th>
+                  <th>英文答案</th>
                   <th>创建人</th>
                   <th>创建时间</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(item, index) in answerList" :key="item.id">
-                  <td><input type="checkbox" v-model="selectedAnswers" :value="item.id" /></td>
-                  <td>{{ (answerPageNum - 1) * answerPageSize + index + 1 }}</td>
-                  <td>
-                    <span class="action-btn action-edit" @click="openAnswerModal(item)">编辑</span>
-                    <span class="action-btn action-delete" @click="deleteAnswer(item.id)">删除</span>
-                  </td>
-                  <td>{{ item.answerCode }}</td>
-                  <td>{{ getAnswerText(item, 'ZH') }}</td>
-                  <td>{{ getAnswerLanguage(item) }}</td>
-                  <td>{{ item.createdBy }}</td>
-                  <td>{{ item.createdTime }}</td>
-                </tr>
+                <template v-for="(item, index) in answerList" :key="item.id">
+                  <tr>
+                    <td><input type="checkbox" v-model="selectedAnswers" :value="item.id" /></td>
+                    <td>{{ (answerPageNum - 1) * answerPageSize + index + 1 }}</td>
+                    <td>
+                      <span class="action-btn action-edit" @click="openAnswerModal(item)">编辑</span>
+                      <span class="action-btn action-delete" @click="deleteAnswer(item.id)">删除</span>
+                    </td>
+                    <td>{{ item.answerCode }}</td>
+                    <td>{{ getAnswerText(item, 'ZH') }}</td>
+                    <td>{{ getAnswerText(item, 'EN') }}</td>
+                    <td>{{ item.createdBy }}</td>
+                    <td>{{ item.createdTime }}</td>
+                  </tr>
+                </template>
                 <tr v-if="answerList.length === 0">
                   <td colspan="8" style="text-align: center; color: #999;">暂无答案，请点击"新增"添加</td>
                 </tr>
@@ -1799,7 +1801,7 @@ export default {
     getAnswerText(answer, lang) {
       if (!answer.answerTexts || answer.answerTexts.length === 0) return '-'
       const text = answer.answerTexts.find(t => t.language === lang)
-      return text ? text.answerText : answer.answerTexts[0].answerText
+      return text ? text.answerText : '-'
     },
     getAnswerLanguage(answer) {
       if (!answer.answerTexts || answer.answerTexts.length === 0) return '-'

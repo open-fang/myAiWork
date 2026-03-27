@@ -266,7 +266,6 @@ class QuestionServiceTest {
         request.setSortOrder(1);
 
         when(questionDao.selectById(1L)).thenReturn(testQuestion);
-        when(answerDao.countTextByLanguage(any(), anyString(), any())).thenReturn(0);
         when(answerDao.insert(any(Answer.class))).thenAnswer(invocation -> {
             Answer a = invocation.getArgument(0);
             a.setId(1L);
