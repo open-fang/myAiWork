@@ -702,6 +702,13 @@
         </div>
       </div>
     </div>
+
+    <!-- Toast提示 -->
+    <div class="toast-container" v-if="toast.show">
+      <div class="toast" :class="'toast-' + toast.type">
+        {{ toast.message }}
+      </div>
+    </div>
   </div>
 </template>
 
@@ -713,32 +720,52 @@ const baseURL = 'http://localhost:8080/api/v1'
 // ==================================
 
 const http = {
-  get(url, params) {
+  async get(url, params) {
     const query = new URLSearchParams(params).toString()
-    return fetch(`${baseURL}${url}${query ? '?' + query : ''}`, {
+    const res = await fetch(`${baseURL}${url}${query ? '?' + query : ''}`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' }
-    }).then(res => res.json())
+    })
+    const data = await res.json()
+    if (!res.ok || data.code !== 200) {
+      throw new Error(data.message || '请求失败')
+    }
+    return data
   },
-  post(url, data) {
-    return fetch(`${baseURL}${url}`, {
+  async post(url, data) {
+    const res = await fetch(`${baseURL}${url}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
-    }).then(res => res.json())
+    })
+    const result = await res.json()
+    if (!res.ok || result.code !== 200) {
+      throw new Error(result.message || '请求失败')
+    }
+    return result
   },
-  put(url, data) {
-    return fetch(`${baseURL}${url}`, {
+  async put(url, data) {
+    const res = await fetch(`${baseURL}${url}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
-    }).then(res => res.json())
+    })
+    const result = await res.json()
+    if (!res.ok || result.code !== 200) {
+      throw new Error(result.message || '请求失败')
+    }
+    return result
   },
-  delete(url) {
-    return fetch(`${baseURL}${url}`, {
+  async delete(url) {
+    const res = await fetch(`${baseURL}${url}`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' }
-    }).then(res => res.json())
+    })
+    const data = await res.json()
+    if (!res.ok || data.code !== 200) {
+      throw new Error(data.message || '请求失败')
+    }
+    return data
   }
 }
 
@@ -1015,6 +1042,13 @@ export default {
   components: { CustomSelect, TreeSelect, YearSelect },
   data() {
     return {
+      // Toast提示
+      toast: {
+        show: false,
+        message: '',
+        type: 'success', // success, error, warning
+        timer: null
+      },
       id: null,
       isNew: false,
       isEdit: false,
@@ -1147,6 +1181,18 @@ export default {
     }
   },
   methods: {
+    // Toast提示方法
+    showToast(message, type = 'success') {
+      if (this.toast.timer) {
+        clearTimeout(this.toast.timer)
+      }
+      this.toast.show = true
+      this.toast.message = message
+      this.toast.type = type
+      this.toast.timer = setTimeout(() => {
+        this.toast.show = false
+      }, 3000) // 3秒后自动消失
+    },
     async loadLookupData() {
       const types = ['AUTH_OBJECT_LEVEL', 'APPLICABLE_REGION', 'AUTH_PUBLISH_LEVEL', 'AUTH_PUBLISH_ORG', 'INDUSTRY', 'BUSINESS_SCENE', 'DECISION_LEVEL']
       for (const type of types) {
@@ -1278,17 +1324,17 @@ export default {
           if (res.code === 200) {
             this.id = res.data
             this.isNew = false
-            alert('保存成功')
+            this.showToast('保存成功')
             window.location.hash = '#/AuthLetterDetail?id=' + this.id
           }
         } else {
           await http.put(`/auth-letters/${this.id}`, data)
-          alert('保存成功')
+          this.showToast('保存成功')
           this.loadData()
         }
       } catch (e) {
         console.error('保存失败', e)
-        alert('保存失败')
+        this.showToast(e.message || '保存失败', 'error')
       }
     },
     async handleSaveAndPublish() {
@@ -1301,33 +1347,33 @@ export default {
       if (!confirm('确定要发布吗？')) return
       try {
         await http.post(`/auth-letters/${this.id}/publish`)
-        alert('发布成功')
+        this.showToast('发布成功')
         this.loadData()
       } catch (e) {
         console.error('发布失败', e)
-        alert('发布失败')
+        this.showToast(e.message || '发布失败', 'error')
       }
     },
     async handleInvalidate() {
       if (!confirm('确定要失效吗？')) return
       try {
         await http.post(`/auth-letters/${this.id}/invalidate`)
-        alert('操作成功')
+        this.showToast('操作成功')
         this.loadData()
       } catch (e) {
         console.error('操作失败', e)
-        alert('操作失败')
+        this.showToast(e.message || '操作失败', 'error')
       }
     },
     async handleDelete() {
       if (!confirm('确定要删除吗？')) return
       try {
         await http.delete(`/auth-letters/${this.id}`)
-        alert('删除成功')
+        this.showToast('删除成功')
         window.location.hash = '#/AuthLetterList'
       } catch (e) {
         console.error('删除失败', e)
-        alert('删除失败')
+        this.showToast(e.message || '删除失败', 'error')
       }
     },
     handleCancel() {
@@ -1346,11 +1392,12 @@ export default {
     async handleConfirmUpload() {
       try {
         await http.post(`/auth-letters/${this.id}/attachments`, this.uploadForm)
+        this.showToast('上传成功')
         this.showUploadModal = false
         this.loadAttachments()
       } catch (e) {
         console.error('上传失败', e)
-        alert('上传失败')
+        this.showToast(e.message || '上传失败', 'error')
       }
     },
     handleDownloadAttachment() {
@@ -1360,16 +1407,18 @@ export default {
       })
     },
     handleDownloadFile(item) {
-      alert(`下载文件: ${item.docName}`)
+      this.showToast(`开始下载: ${item.docName}`)
     },
     async handleDeleteAttachment() {
       if (!confirm('确定要删除选中的附件吗？')) return
       try {
         await http.post(`/auth-letters/${this.id}/attachments/batch-delete`, this.selectedAttachments)
+        this.showToast('删除成功')
         this.selectedAttachments = []
         this.loadAttachments()
       } catch (e) {
         console.error('删除失败', e)
+        this.showToast(e.message || '删除失败', 'error')
       }
     },
     handleSceneSelectAll() {
@@ -1414,32 +1463,36 @@ export default {
         } else {
           await http.post(`/auth-letters/${this.id}/scenes`, data)
         }
+        this.showToast('保存成功')
         this.showSceneModal = false
         this.loadScenes()
       } catch (e) {
         console.error('保存场景失败', e)
-        alert('保存失败')
+        this.showToast(e.message || '保存失败', 'error')
       }
     },
     async handleDeleteScene(sceneId) {
       if (!confirm('确定要删除此场景吗？')) return
       try {
         await http.delete(`/auth-letters/${this.id}/scenes/${sceneId}`)
+        this.showToast('删除成功')
         this.loadScenes()
       } catch (e) {
         console.error('删除失败', e)
+        this.showToast(e.message || '删除失败', 'error')
       }
     },
     handlePreviewQuestionnaire() {
       if (!this.sceneForm.questionnaire) {
-        alert('问卷内容为空')
+        this.showToast('问卷内容为空', 'warning')
         return
       }
       try {
         const questionnaire = JSON.parse(this.sceneForm.questionnaire)
-        alert('问卷预览：\n' + JSON.stringify(questionnaire, null, 2))
+        console.log('问卷预览:', questionnaire)
+        this.showToast('问卷格式正确，请查看控制台预览')
       } catch (e) {
-        alert('问卷格式错误，请输入有效的JSON格式')
+        this.showToast('问卷格式错误，请输入有效的JSON格式', 'error')
       }
     },
     handleClearQuestionnaire() {
@@ -1592,7 +1645,7 @@ export default {
         const languages = this.questionForm.questionTexts.map(t => t.language).filter(l => l)
         const uniqueLanguages = [...new Set(languages)]
         if (languages.length !== uniqueLanguages.length) {
-          alert('相同语言只能维护一个题目')
+          this.showToast('相同语言只能维护一个题目', 'warning')
           return
         }
 
@@ -1602,27 +1655,28 @@ export default {
 
         if (this.editingQuestion) {
           await http.put(`/questions/${this.editingQuestion.id}`, data)
-          alert('更新成功')
+          this.showToast('更新成功')
         } else {
           await http.post('/questions', data)
-          alert('创建成功')
+          this.showToast('创建成功')
         }
 
         this.showQuestionModal = false
         this.loadQuestions()
       } catch (e) {
         console.error('保存题目失败', e)
-        alert('保存失败')
+        this.showToast(e.message || '保存失败', 'error')
       }
     },
     async deleteQuestion(id) {
       if (!confirm('确定要删除此题目吗？')) return
       try {
         await http.delete(`/questions/${id}`)
+        this.showToast('删除成功')
         this.loadQuestions()
       } catch (e) {
         console.error('删除题目失败', e)
-        if (e.message) alert(e.message)
+        this.showToast(e.message || '删除失败', 'error')
       }
     },
     async batchDeleteQuestions() {
@@ -1723,7 +1777,7 @@ export default {
         // 验证是否有有效的答案文本
         const validItems = this.answerForm.answerItems.filter(item => item.zhText || item.enText)
         if (validItems.length === 0) {
-          alert('请至少添加一条有效的答案内容')
+          this.showToast('请至少添加一条有效的答案内容', 'warning')
           return
         }
 
@@ -1744,27 +1798,28 @@ export default {
 
         if (this.editingAnswer) {
           await http.put(`/questions/answers/${this.editingAnswer.id}`, data)
-          alert('更新成功')
+          this.showToast('更新成功')
         } else {
           await http.post(`/questions/${this.editingQuestion.id}/answers`, data)
-          alert('创建成功')
+          this.showToast('创建成功')
         }
 
         this.showAnswerModal = false
         this.loadAnswers()
       } catch (e) {
         console.error('保存答案失败', e)
-        alert('保存失败')
+        this.showToast(e.message || '保存失败', 'error')
       }
     },
     async deleteAnswer(id) {
       if (!confirm('确定要删除此答案吗？')) return
       try {
         await http.delete(`/questions/answers/${id}`)
+        this.showToast('删除成功')
         this.loadAnswers()
       } catch (e) {
         console.error('删除答案失败', e)
-        alert('删除失败')
+        this.showToast(e.message || '删除失败', 'error')
       }
     },
     async batchDeleteAnswers() {
@@ -1776,7 +1831,7 @@ export default {
         this.loadAnswers()
       } catch (e) {
         console.error('批量删除失败', e)
-        alert('删除失败')
+        this.showToast(e.message || '删除失败', 'error')
       }
     },
     addAnswerItem() {
@@ -2646,5 +2701,39 @@ tr:hover {
 .answer-group-table .table-input {
   width: 100%;
   background: transparent;
+}
+
+/* Toast提示样式 */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+}
+.toast {
+  padding: 12px 24px;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: fadeInOut 3s ease-in-out;
+  font-size: 14px;
+}
+.toast-success {
+  background: #52c41a;
+  color: white;
+}
+.toast-error {
+  background: #ff4d4f;
+  color: white;
+}
+.toast-warning {
+  background: #faad14;
+  color: white;
+}
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateY(-10px); }
+  10% { opacity: 1; transform: translateY(0); }
+  90% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-10px); }
 }
 </style>
