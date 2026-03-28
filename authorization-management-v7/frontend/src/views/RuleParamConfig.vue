@@ -68,32 +68,207 @@
         <el-table-column label="更新时间" prop="updatedTime" width="160" />
       </el-table>
 
-      <!-- 分页 -->
-      <Pagination
-        :total="pagination.total"
-        :page-size="pagination.pageSize"
-        :current-page="pagination.currentPage"
-        @size-change="handlePageSizeChange"
-        @current-change="handlePageChange"
-      />
+      <!-- Pagination 组件 - 内联 -->
+      <div class="pagination-container">
+        <el-pagination
+          background
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="pagination.total"
+          :page-size="pagination.pageSize"
+          :current-page="pagination.currentPage"
+          :page-sizes="[10, 30, 50]"
+          @size-change="handlePageSizeChange"
+          @current-change="handlePageChange"
+        />
+      </div>
     </el-card>
 
-    <!-- 规则参数详情弹窗 -->
-    <RuleParamDetailDialog ref="detailDialog" :rule-param-options="dataList" @success="loadDataList" />
+    <!-- 规则参数详情弹窗 - RuleParamDetailDialog 内联 -->
+    <el-dialog
+      title="规则参数详情"
+      :visible.sync="detailDialogVisible"
+      width="600px"
+      append-to-body
+      @close="handleDetailDialogClose"
+    >
+      <el-form ref="detailForm" :model="detailFormData" :rules="detailRules" label-width="100px">
+        <!-- 第一行：名称和名称英文 -->
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="名称" prop="name">
+              <el-input v-model="detailFormData.name" placeholder="请输入名称" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="名称英文" prop="nameEn">
+              <el-input v-model="detailFormData.nameEn" placeholder="请输入名称英文" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <!-- 业务对象和取值逻辑（可增减） -->
+        <div class="business-objects-section">
+          <label class="section-label">业务对象配置</label>
+          <div class="business-objects-list">
+            <el-row
+              v-for="(item, index) in detailFormData.businessObjects"
+              :key="index"
+              :gutter="20"
+            >
+              <el-col :span="10">
+                <el-input v-model="item.businessObject" placeholder="业务对象" />
+              </el-col>
+              <el-col :span="10">
+                <el-input v-model="item.valueLogic" placeholder="取值逻辑" />
+              </el-col>
+              <el-col :span="4">
+                <el-button
+                  v-if="index === detailFormData.businessObjects.length - 1"
+                  type="primary"
+                  icon="el-icon-plus"
+                  size="small"
+                  @click="addBusinessObject"
+                />
+                <el-button
+                  v-if="detailFormData.businessObjects.length > 1"
+                  type="danger"
+                  icon="el-icon-delete"
+                  size="small"
+                  @click="removeBusinessObject(index)"
+                />
+              </el-col>
+            </el-row>
+          </div>
+        </div>
+
+        <!-- 第二行：是否生效和数据类型 -->
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="是否生效" prop="status">
+              <el-select v-model="detailFormData.status" placeholder="请选择">
+                <el-option label="是" value="ACTIVE" />
+                <el-option label="否" value="INACTIVE" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="数据类型" prop="dataType">
+              <el-select v-model="detailFormData.dataType" placeholder="请选择">
+                <el-option label="文本" value="TEXT" />
+                <el-option label="数值" value="NUMBER" />
+                <el-option label="比对字段" value="FIELD" />
+                <el-option label="比率" value="RATIO" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <!-- 关联字段（FIELD类型时显示） -->
+        <el-row v-if="detailFormData.dataType === 'FIELD'" :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="关联字段" prop="referenceFieldId">
+              <el-select v-model="detailFormData.referenceFieldId" placeholder="请选择关联字段">
+                <el-option
+                  v-for="item in dataList"
+                  :key="item.id"
+                  :label="item.name"
+                  :value="item.id"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-form>
+
+      <span slot="footer">
+        <el-button @click="handleDetailDialogClose">取消</el-button>
+        <el-button type="primary" :loading="detailLoading" @click="handleDetailConfirm">确认</el-button>
+      </span>
+    </el-dialog>
   </div>
 </template>
 
 <script>
-import Pagination from '@/components/Pagination.vue'
-import RuleParamDetailDialog from '@/components/RuleParamDetailDialog.vue'
-import { getRuleParamList, batchUpdateStatus } from '@/api/ruleParam'
+// ============================================
+// API 函数 - 内联
+// ============================================
+import axios from 'axios'
+import { Message } from 'element-ui'
 
+const baseURL = '/api/v1'
+
+const request = axios.create({
+  baseURL,
+  timeout: 30000,
+  headers: { 'Content-Type': 'application/json' }
+})
+
+request.interceptors.request.use(config => config, error => Promise.reject(error))
+
+request.interceptors.response.use(
+  response => {
+    const res = response.data
+    if (res.code !== 200) {
+      Message.error(res.message || '请求失败')
+      return Promise.reject(new Error(res.message || '请求失败'))
+    }
+    return res
+  },
+  error => {
+    Message.error(error.message || '网络错误')
+    return Promise.reject(error)
+  }
+)
+
+// API: 查询规则参数列表
+function getRuleParamList(params) {
+  return request({
+    url: `${baseURL}/rule-params`,
+    method: 'get',
+    params
+  })
+}
+
+// API: 获取规则参数详情
+function getRuleParamDetail(id) {
+  return request({
+    url: `${baseURL}/rule-params/${id}`,
+    method: 'get'
+  })
+}
+
+// API: 创建规则参数
+function createRuleParam(data) {
+  return request({
+    url: `${baseURL}/rule-params`,
+    method: 'post',
+    data
+  })
+}
+
+// API: 更新规则参数
+function updateRuleParam(id, data) {
+  return request({
+    url: `${baseURL}/rule-params/${id}`,
+    method: 'put',
+    data
+  })
+}
+
+// API: 批量更新状态
+function batchUpdateStatus(ids, status) {
+  return request({
+    url: `${baseURL}/rule-params/batch-status`,
+    method: 'post',
+    data: { ids, status }
+  })
+}
+
+// ============================================
+// 组件逻辑
+// ============================================
 export default {
   name: 'RuleParamConfig',
-  components: {
-    Pagination,
-    RuleParamDetailDialog
-  },
   data() {
     return {
       searchParams: {
@@ -107,6 +282,27 @@ export default {
         total: 0,
         pageSize: 10,
         currentPage: 1
+      },
+      // 详情弹窗数据
+      detailDialogVisible: false,
+      detailLoading: false,
+      detailIsEdit: false,
+      detailCurrentId: null,
+      detailFormData: {
+        name: '',
+        nameEn: '',
+        businessObjects: [
+          { businessObject: '', valueLogic: '' }
+        ],
+        status: 'ACTIVE',
+        dataType: 'TEXT',
+        referenceFieldId: null
+      },
+      detailRules: {
+        name: [{ required: true, message: '请输入名称', trigger: 'blur' }],
+        nameEn: [{ required: true, message: '请输入名称英文', trigger: 'blur' }],
+        status: [{ required: true, message: '请选择是否生效', trigger: 'change' }],
+        dataType: [{ required: true, message: '请选择数据类型', trigger: 'change' }]
       }
     }
   },
@@ -147,10 +343,90 @@ export default {
       this.selectedRows = rows
     },
     handleCreate() {
-      this.$refs.detailDialog.open()
+      this.detailIsEdit = false
+      this.detailCurrentId = null
+      this.resetDetailForm()
+      this.detailDialogVisible = true
     },
-    handleEdit(row) {
-      this.$refs.detailDialog.open(row.id)
+    async handleEdit(row) {
+      this.detailIsEdit = true
+      this.detailCurrentId = row.id
+      this.detailDialogVisible = true
+      await this.loadDetail(row.id)
+    },
+    async loadDetail(id) {
+      try {
+        const res = await getRuleParamDetail(id)
+        this.detailFormData = {
+          name: res.data.name || '',
+          nameEn: res.data.nameEn || '',
+          businessObjects: res.data.businessObjects || [{ businessObject: '', valueLogic: '' }],
+          status: res.data.status || 'ACTIVE',
+          dataType: res.data.dataType || 'TEXT',
+          referenceFieldId: res.data.referenceFieldId || null
+        }
+      } catch (error) {
+        this.$message.error('加载详情失败')
+        this.detailDialogVisible = false
+      }
+    },
+    resetDetailForm() {
+      this.detailFormData = {
+        name: '',
+        nameEn: '',
+        businessObjects: [
+          { businessObject: '', valueLogic: '' }
+        ],
+        status: 'ACTIVE',
+        dataType: 'TEXT',
+        referenceFieldId: null
+      }
+    },
+    addBusinessObject() {
+      this.detailFormData.businessObjects.push({ businessObject: '', valueLogic: '' })
+    },
+    removeBusinessObject(index) {
+      this.detailFormData.businessObjects.splice(index, 1)
+    },
+    handleDetailDialogClose() {
+      this.detailDialogVisible = false
+      this.resetDetailForm()
+      if (this.$refs.detailForm) {
+        this.$refs.detailForm.resetFields()
+      }
+    },
+    async handleDetailConfirm() {
+      try {
+        await this.$refs.detailForm.validate()
+        this.detailLoading = true
+
+        // 过滤空的业务对象
+        const businessObjects = this.detailFormData.businessObjects.filter(
+          item => item.businessObject || item.valueLogic
+        )
+
+        const data = {
+          ...this.detailFormData,
+          businessObjects: businessObjects.length > 0 ? businessObjects : [{ businessObject: '', valueLogic: '' }]
+        }
+
+        if (this.detailIsEdit) {
+          await updateRuleParam(this.detailCurrentId, data)
+          this.$message.success('更新成功')
+        } else {
+          await createRuleParam(data)
+          this.$message.success('创建成功')
+        }
+
+        this.detailDialogVisible = false
+        this.loadDataList()
+      } catch (error) {
+        if (error.message) {
+          this.$message.error(error.message)
+        }
+      } finally {
+        this.detailLoading = false
+      }
     },
     async handleBatchStatus(status) {
       try {
@@ -191,5 +467,22 @@ export default {
 }
 .table-card {
   margin-top: 10px;
+}
+.pagination-container {
+  padding: 15px 0;
+  display: flex;
+  justify-content: flex-end;
+}
+.business-objects-section {
+  margin-bottom: 20px;
+}
+.section-label {
+  display: block;
+  font-size: 14px;
+  color: #606266;
+  margin-bottom: 10px;
+}
+.business-objects-list {
+  padding-left: 10px;
 }
 </style>

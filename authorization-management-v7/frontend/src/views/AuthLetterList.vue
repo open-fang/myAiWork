@@ -13,40 +13,108 @@
           </el-col>
           <el-col :span="6">
             <el-form-item label="授权对象层级">
-              <FlatMultiSelect
+              <!-- FlatMultiSelect 组件 - 内联 -->
+              <el-select
                 v-model="searchParams.authObjectLevel"
-                :options="authObjectLevelOptions"
+                multiple
+                collapse-tags
                 placeholder="请选择"
-              />
+                clearable
+              >
+                <el-option
+                  v-for="item in authObjectLevelOptions"
+                  :key="item.code"
+                  :label="item.name"
+                  :value="item.code"
+                />
+              </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="6">
             <el-form-item label="适用区域">
-              <TreeMultiSelect
-                v-model="searchParams.applicableRegion"
-                :tree-data="applicableRegionOptions"
-                placeholder="请选择"
-              />
+              <!-- TreeMultiSelect 组件 - 内联 -->
+              <el-popover
+                v-model="treeSelectVisible.applicableRegion"
+                placement="bottom-start"
+                trigger="click"
+                width="400"
+              >
+                <div class="tree-select-content">
+                  <el-tree
+                    ref="applicableRegionTree"
+                    :data="applicableRegionOptions"
+                    :props="{ children: 'children', label: 'name' }"
+                    show-checkbox
+                    check-strictly
+                    node-key="code"
+                    :default-checked-keys="searchParams.applicableRegion"
+                    @check="handleTreeCheck('applicableRegion', $event)"
+                  />
+                </div>
+                <el-input
+                  slot="reference"
+                  :value="getTreeDisplayText('applicableRegion')"
+                  placeholder="请选择"
+                  readonly
+                  clearable
+                  @clear="handleTreeClear('applicableRegion')"
+                >
+                  <i slot="suffix" class="el-input__icon el-icon-arrow-down" />
+                </el-input>
+              </el-popover>
             </el-form-item>
           </el-col>
           <el-col :span="6">
             <el-form-item label="授权发布层级">
-              <FlatMultiSelect
+              <el-select
                 v-model="searchParams.authPublishLevel"
-                :options="authPublishLevelOptions"
+                multiple
+                collapse-tags
                 placeholder="请选择"
-              />
+                clearable
+              >
+                <el-option
+                  v-for="item in authPublishLevelOptions"
+                  :key="item.code"
+                  :label="item.name"
+                  :value="item.code"
+                />
+              </el-select>
             </el-form-item>
           </el-col>
         </el-row>
         <el-row :gutter="20">
           <el-col :span="6">
             <el-form-item label="授权发布组织">
-              <TreeMultiSelect
-                v-model="searchParams.authPublishOrg"
-                :tree-data="authPublishOrgOptions"
-                placeholder="请选择"
-              />
+              <el-popover
+                v-model="treeSelectVisible.authPublishOrg"
+                placement="bottom-start"
+                trigger="click"
+                width="400"
+              >
+                <div class="tree-select-content">
+                  <el-tree
+                    ref="authPublishOrgTree"
+                    :data="authPublishOrgOptions"
+                    :props="{ children: 'children', label: 'name' }"
+                    show-checkbox
+                    check-strictly
+                    node-key="code"
+                    :default-checked-keys="searchParams.authPublishOrg"
+                    @check="handleTreeCheck('authPublishOrg', $event)"
+                  />
+                </div>
+                <el-input
+                  slot="reference"
+                  :value="getTreeDisplayText('authPublishOrg')"
+                  placeholder="请选择"
+                  readonly
+                  clearable
+                  @clear="handleTreeClear('authPublishOrg')"
+                >
+                  <i slot="suffix" class="el-input__icon el-icon-arrow-down" />
+                </el-input>
+              </el-popover>
             </el-form-item>
           </el-col>
           <el-col :span="6">
@@ -130,32 +198,114 @@
         <el-table-column label="创建时间" prop="createdTime" width="160" />
       </el-table>
 
-      <!-- 分页 -->
-      <Pagination
-        :total="pagination.total"
-        :page-size="pagination.pageSize"
-        :current-page="pagination.currentPage"
-        @size-change="handlePageSizeChange"
-        @current-change="handlePageChange"
-      />
+      <!-- Pagination 组件 - 内联 -->
+      <div class="pagination-container">
+        <el-pagination
+          background
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="pagination.total"
+          :page-size="pagination.pageSize"
+          :current-page="pagination.currentPage"
+          :page-sizes="[10, 30, 50]"
+          @size-change="handlePageSizeChange"
+          @current-change="handlePageChange"
+        />
+      </div>
     </el-card>
   </div>
 </template>
 
 <script>
-import FlatMultiSelect from '@/components/FlatMultiSelect.vue'
-import TreeMultiSelect from '@/components/TreeMultiSelect.vue'
-import Pagination from '@/components/Pagination.vue'
-import { getAuthLetterList, batchAuthLetter, deleteAuthLetter } from '@/api/authLetter'
-import { getLookupValues, LOOKUP_TYPES } from '@/api/lookup'
+// ============================================
+// API 函数 - 内联
+// ============================================
+import axios from 'axios'
+import { Message } from 'element-ui'
 
+// baseURL - 联调时可临时修改
+const baseURL = '/api/v1'
+
+const request = axios.create({
+  baseURL,
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json'
+  }
+})
+
+// 请求拦截器
+request.interceptors.request.use(
+  config => config,
+  error => {
+    console.error('Request error:', error)
+    return Promise.reject(error)
+  }
+)
+
+// 响应拦截器
+request.interceptors.response.use(
+  response => {
+    const res = response.data
+    if (res.code !== 200) {
+      Message.error(res.message || '请求失败')
+      return Promise.reject(new Error(res.message || '请求失败'))
+    }
+    return res
+  },
+  error => {
+    console.error('Response error:', error)
+    Message.error(error.message || '网络错误')
+    return Promise.reject(error)
+  }
+)
+
+// API: 查询授权书列表
+function getAuthLetterList(params) {
+  return request({
+    url: `${baseURL}/auth-letters`,
+    method: 'get',
+    params
+  })
+}
+
+// API: 批量操作授权书
+function batchAuthLetter(data) {
+  return request({
+    url: `${baseURL}/auth-letters/batch`,
+    method: 'post',
+    data
+  })
+}
+
+// API: 删除授权书
+function deleteAuthLetter(id) {
+  return request({
+    url: `${baseURL}/auth-letters/${id}`,
+    method: 'delete'
+  })
+}
+
+// API: 获取下拉列表数据
+function getLookupValues(typeCode) {
+  return request({
+    url: `${baseURL}/lookup-values/${typeCode}`,
+    method: 'get'
+  })
+}
+
+// 下拉类型编码常量
+const LOOKUP_TYPES = {
+  AUTH_OBJECT_LEVEL: 'AUTH_OBJECT_LEVEL',
+  AUTH_PUBLISH_LEVEL: 'AUTH_PUBLISH_LEVEL',
+  APPLICABLE_REGION: 'APPLICABLE_REGION',
+  AUTH_PUBLISH_ORG: 'AUTH_PUBLISH_ORG'
+}
+
+// ============================================
+// 组件逻辑
+// ============================================
 export default {
   name: 'AuthLetterList',
-  components: {
-    FlatMultiSelect,
-    TreeMultiSelect,
-    Pagination
-  },
   data() {
     return {
       searchParams: {
@@ -177,7 +327,16 @@ export default {
       authObjectLevelOptions: [],
       applicableRegionOptions: [],
       authPublishLevelOptions: [],
-      authPublishOrgOptions: []
+      authPublishOrgOptions: [],
+      // TreeMultiSelect 状态
+      treeSelectVisible: {
+        applicableRegion: false,
+        authPublishOrg: false
+      },
+      treeCheckedKeys: {
+        applicableRegion: [],
+        authPublishOrg: []
+      }
     }
   },
   async mounted() {
@@ -234,6 +393,10 @@ export default {
         authPublishOrg: [],
         publishYear: '',
         status: ''
+      }
+      this.treeCheckedKeys = {
+        applicableRegion: [],
+        authPublishOrg: []
       }
       this.pagination.currentPage = 1
       this.loadDataList()
@@ -331,6 +494,47 @@ export default {
           this.$message.error(error.message || '删除失败')
         }
       }
+    },
+    // TreeMultiSelect 方法
+    getTreeCheckedNames(data, codes) {
+      const names = []
+      const traverse = (nodes) => {
+        for (const node of nodes) {
+          if (codes.includes(node.code)) {
+            names.push(node.name)
+          }
+          if (node.children && node.children.length > 0) {
+            traverse(node.children)
+          }
+        }
+      }
+      traverse(data)
+      return names
+    },
+    getTreeDisplayText(field) {
+      const keys = this.treeCheckedKeys[field] || []
+      if (keys.length === 0) return ''
+      let data = []
+      if (field === 'applicableRegion') {
+        data = this.applicableRegionOptions
+      } else if (field === 'authPublishOrg') {
+        data = this.authPublishOrgOptions
+      }
+      const names = this.getTreeCheckedNames(data, keys)
+      if (names.length > 3) {
+        return names.slice(0, 3).join(', ') + '...'
+      }
+      return names.join(', ')
+    },
+    handleTreeCheck(field, { checkedKeys }) {
+      this.treeCheckedKeys[field] = checkedKeys
+      this.searchParams[field] = checkedKeys
+    },
+    handleTreeClear(field) {
+      this.treeCheckedKeys[field] = []
+      this.searchParams[field] = []
+      const treeRef = field === 'applicableRegion' ? 'applicableRegionTree' : 'authPublishOrgTree'
+      this.$refs[treeRef].setCheckedKeys([])
     }
   }
 }
@@ -353,5 +557,14 @@ export default {
 }
 .table-card {
   margin-top: 10px;
+}
+.pagination-container {
+  padding: 15px 0;
+  display: flex;
+  justify-content: flex-end;
+}
+.tree-select-content {
+  max-height: 300px;
+  overflow-y: auto;
 }
 </style>
