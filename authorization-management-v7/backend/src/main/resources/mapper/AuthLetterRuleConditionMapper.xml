@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.auth.management.mapper.AuthLetterRuleConditionMapper">
+
+    <resultMap id="BaseResultMap" type="com.auth.management.entity.AuthLetterRuleCondition">
+        <id column="id" property="id"/>
+        <result column="rule_id" property="ruleId"/>
+        <result column="parent_condition_id" property="parentConditionId"/>
+        <result column="field_code" property="fieldCode"/>
+        <result column="operator" property="operator"/>
+        <result column="compare_type" property="compareType"/>
+        <result column="compare_field_code" property="compareFieldCode"/>
+        <result column="compare_value" property="compareValue"/>
+        <result column="compare_unit" property="compareUnit"/>
+        <result column="logic_type" property="logicType"/>
+        <result column="is_group" property="isGroup"/>
+        <result column="group_logic_type" property="groupLogicType"/>
+        <result column="sort_order" property="sortOrder"/>
+        <result column="created_by" property="createdBy"/>
+        <result column="created_time" property="createdTime"/>
+        <result column="updated_by" property="updatedBy"/>
+        <result column="updated_time" property="updatedTime"/>
+        <result column="delete_flag" property="deleteFlag"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, rule_id, parent_condition_id, field_code, operator, compare_type,
+        compare_field_code, compare_value, compare_unit, logic_type, is_group,
+        group_logic_type, sort_order, created_by, created_time, updated_by,
+        updated_time, delete_flag
+    </sql>
+
+    <!-- Recursive query for conditions with children -->
+    <select id="selectByRuleId" resultMap="BaseResultMap">
+        WITH RECURSIVE condition_tree AS (
+            -- Base case: root conditions
+            SELECT <include refid="Base_Column_List"/>
+            FROM auth_letter_rule_conditions
+            WHERE rule_id = #{ruleId}
+            AND parent_condition_id IS NULL
+            AND delete_flag = 0
+
+            UNION ALL
+
+            -- Recursive case: child conditions
+            SELECT c.id, c.rule_id, c.parent_condition_id, c.field_code, c.operator,
+                   c.compare_type, c.compare_field_code, c.compare_value, c.compare_unit,
+                   c.logic_type, c.is_group, c.group_logic_type, c.sort_order,
+                   c.created_by, c.created_time, c.updated_by, c.updated_time, c.delete_flag
+            FROM auth_letter_rule_conditions c
+            INNER JOIN condition_tree ct ON c.parent_condition_id = ct.id
+            WHERE c.delete_flag = 0
+        )
+        SELECT * FROM condition_tree ORDER BY sort_order
+    </select>
+
+    <select id="selectChildren" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM auth_letter_rule_conditions
+        WHERE parent_condition_id = #{parentConditionId}
+        AND delete_flag = 0
+        ORDER BY sort_order
+    </select>
+
+    <delete id="deleteByRuleId">
+        DELETE FROM auth_letter_rule_conditions
+        WHERE rule_id = #{ruleId}
+    </delete>
+
+</mapper>

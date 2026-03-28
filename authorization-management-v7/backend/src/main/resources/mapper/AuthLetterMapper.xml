@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.auth.management.mapper.AuthLetterMapper">
+
+    <resultMap id="BaseResultMap" type="com.auth.management.entity.AuthLetter">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="auth_object_level" property="authObjectLevel"/>
+        <result column="applicable_region" property="applicableRegion"/>
+        <result column="auth_publish_level" property="authPublishLevel"/>
+        <result column="auth_publish_org" property="authPublishOrg"/>
+        <result column="publish_year" property="publishYear"/>
+        <result column="summary" property="summary"/>
+        <result column="status" property="status"/>
+        <result column="created_by" property="createdBy"/>
+        <result column="created_time" property="createdTime"/>
+        <result column="updated_by" property="updatedBy"/>
+        <result column="updated_time" property="updatedTime"/>
+        <result column="delete_flag" property="deleteFlag"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, name, auth_object_level, applicable_region, auth_publish_level, auth_publish_org,
+        publish_year, summary, status, created_by, created_time, updated_by, updated_time, delete_flag
+    </sql>
+
+    <select id="selectListWithConditions" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM auth_letters
+        WHERE delete_flag = 0
+        <if test="name != null and name != ''">
+            AND name LIKE CONCAT('%', #{name}, '%')
+        </if>
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
+        <if test="publishYear != null">
+            AND publish_year = #{publishYear}
+        </if>
+        <if test="authObjectLevel != null and authObjectLevel != ''">
+            AND auth_object_level::jsonb @> #{authObjectLevel}::jsonb
+        </if>
+        <if test="applicableRegion != null and applicableRegion != ''">
+            AND applicable_region::jsonb ? #{applicableRegion}
+        </if>
+        <if test="authPublishLevel != null and authPublishLevel != ''">
+            AND auth_publish_level::jsonb @> #{authPublishLevel}::jsonb
+        </if>
+        <if test="authPublishOrg != null and authPublishOrg != ''">
+            AND auth_publish_org::jsonb ? #{authPublishOrg}
+        </if>
+        ORDER BY created_time DESC
+        <if test="offset != null and pageSize != null">
+            LIMIT #{pageSize} OFFSET #{offset}
+        </if>
+    </select>
+
+    <select id="countListWithConditions" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM auth_letters
+        WHERE delete_flag = 0
+        <if test="name != null and name != ''">
+            AND name LIKE CONCAT('%', #{name}, '%')
+        </if>
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
+        <if test="publishYear != null">
+            AND publish_year = #{publishYear}
+        </if>
+        <if test="authObjectLevel != null and authObjectLevel != ''">
+            AND auth_object_level::jsonb @> #{authObjectLevel}::jsonb
+        </if>
+        <if test="applicableRegion != null and applicableRegion != ''">
+            AND applicable_region::jsonb ? #{applicableRegion}
+        </if>
+        <if test="authPublishLevel != null and authPublishLevel != ''">
+            AND auth_publish_level::jsonb @> #{authPublishLevel}::jsonb
+        </if>
+        <if test="authPublishOrg != null and authPublishOrg != ''">
+            AND auth_publish_org::jsonb ? #{authPublishOrg}
+        </if>
+    </select>
+
+    <select id="checkNameExists" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM auth_letters
+        WHERE delete_flag = 0
+        AND name = #{name}
+        <if test="excludeId != null">
+            AND id != #{excludeId}
+        </if>
+    </select>
+
+</mapper>

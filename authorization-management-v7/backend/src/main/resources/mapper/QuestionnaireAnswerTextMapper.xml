@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.auth.management.mapper.QuestionnaireAnswerTextMapper">
+
+    <resultMap id="BaseResultMap" type="com.auth.management.entity.QuestionnaireAnswerText">
+        <id column="id" property="id"/>
+        <result column="answer_id" property="answerId"/>
+        <result column="answer_text" property="answerText"/>
+        <result column="language" property="language"/>
+        <result column="created_by" property="createdBy"/>
+        <result column="created_time" property="createdTime"/>
+        <result column="updated_by" property="updatedBy"/>
+        <result column="updated_time" property="updatedTime"/>
+        <result column="delete_flag" property="deleteFlag"/>
+    </resultMap>
+
+    <select id="selectByAnswerId" resultMap="BaseResultMap">
+        SELECT id, answer_id, answer_text, language, created_by, created_time,
+               updated_by, updated_time, delete_flag
+        FROM questionnaire_answer_texts
+        WHERE answer_id = #{answerId}
+        AND delete_flag = 0
+    </select>
+
+    <delete id="deleteByAnswerId">
+        DELETE FROM questionnaire_answer_texts
+        WHERE answer_id = #{answerId}
+    </delete>
+
+    <delete id="deleteByAnswerIds">
+        DELETE FROM questionnaire_answer_texts
+        WHERE answer_id IN
+        <foreach collection="answerIds" item="answerId" open="(" separator="," close=")">
+            #{answerId}
+        </foreach>
+    </delete>
+
+</mapper>

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.auth.management.mapper.LookupValueMapper">
+
+    <resultMap id="BaseResultMap" type="com.auth.management.entity.LookupValue">
+        <id column="id" property="id"/>
+        <result column="type_id" property="typeId"/>
+        <result column="value_code" property="valueCode"/>
+        <result column="value_name" property="valueName"/>
+        <result column="parent_code" property="parentCode"/>
+        <result column="level" property="level"/>
+        <result column="sort_order" property="sortOrder"/>
+        <result column="status" property="status"/>
+        <result column="created_by" property="createdBy"/>
+        <result column="created_time" property="createdTime"/>
+        <result column="updated_by" property="updatedBy"/>
+        <result column="updated_time" property="updatedTime"/>
+        <result column="delete_flag" property="deleteFlag"/>
+    </resultMap>
+
+    <!-- Flat list -->
+    <select id="selectByTypeId" resultMap="BaseResultMap">
+        SELECT id, type_id, value_code, value_name, parent_code, level, sort_order,
+               status, created_by, created_time, updated_by, updated_time, delete_flag
+        FROM lookup_values
+        WHERE type_id = #{typeId}
+        AND delete_flag = 0
+        AND status = 'ACTIVE'
+        ORDER BY sort_order
+    </select>
+
+    <!-- Tree structure using recursive query -->
+    <select id="selectTreeByTypeId" resultMap="BaseResultMap">
+        WITH RECURSIVE value_tree AS (
+            -- Base case: root nodes
+            SELECT id, type_id, value_code, value_name, parent_code, level, sort_order,
+                   status, created_by, created_time, updated_by, updated_time, delete_flag
+            FROM lookup_values
+            WHERE type_id = #{typeId}
+            AND parent_code IS NULL
+            AND delete_flag = 0
+            AND status = 'ACTIVE'
+
+            UNION ALL
+
+            -- Recursive case: child nodes
+            SELECT v.id, v.type_id, v.value_code, v.value_name, v.parent_code, v.level,
+                   v.sort_order, v.status, v.created_by, v.created_time, v.updated_by,
+                   v.updated_time, v.delete_flag
+            FROM lookup_values v
+            INNER JOIN value_tree vt ON v.parent_code = vt.value_code
+            WHERE v.delete_flag = 0
+            AND v.status = 'ACTIVE'
+        )
+        SELECT * FROM value_tree ORDER BY level, sort_order
+    </select>
+
+    <select id="selectChildrenByParentCode" resultMap="BaseResultMap">
+        SELECT id, type_id, value_code, value_name, parent_code, level, sort_order,
+               status, created_by, created_time, updated_by, updated_time, delete_flag
+        FROM lookup_values
+        WHERE parent_code = #{parentCode}
+        AND delete_flag = 0
+        AND status = 'ACTIVE'
+        ORDER BY sort_order
+    </select>
+
+</mapper>
