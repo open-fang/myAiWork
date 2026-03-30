@@ -71,7 +71,7 @@ public class RuleParamServiceImpl implements RuleParamService {
         RuleParam ruleParam = new RuleParam();
         ruleParam.setName(request.getName());
         ruleParam.setNameEn(request.getNameEn());
-        ruleParam.setBusinessObjects(request.getBusinessObjects());
+        ruleParam.setBusinessObjects(toJsonString(request.getBusinessObjects()));
         ruleParam.setStatus(request.getStatus());
         ruleParam.setDataType(request.getDataType());
         ruleParam.setReferenceFieldId(request.getReferenceFieldId());
@@ -98,7 +98,7 @@ public class RuleParamServiceImpl implements RuleParamService {
 
         existing.setName(request.getName());
         existing.setNameEn(request.getNameEn());
-        existing.setBusinessObjects(request.getBusinessObjects());
+        existing.setBusinessObjects(toJsonString(request.getBusinessObjects()));
         existing.setStatus(request.getStatus());
         existing.setDataType(request.getDataType());
         existing.setReferenceFieldId(request.getReferenceFieldId());
@@ -198,5 +198,16 @@ public class RuleParamServiceImpl implements RuleParamService {
     private String getDataTypeName(String dataTypeCode) {
         DataType dataType = DataType.fromCode(dataTypeCode);
         return dataType != null ? dataType.getName() : dataTypeCode;
+    }
+
+    private String toJsonString(List<?> list) {
+        if (list == null || list.isEmpty()) {
+            return "[]";
+        }
+        try {
+            return objectMapper.writeValueAsString(list);
+        } catch (Exception e) {
+            return "[]";
+        }
     }
 }

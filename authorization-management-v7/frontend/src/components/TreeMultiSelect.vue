@@ -83,6 +83,12 @@ export default {
     value: {
       handler(val) {
         this.checkedKeys = val || []
+        // 同步更新 tree 的选中状态
+        this.$nextTick(() => {
+          if (this.$refs.tree) {
+            this.$refs.tree.setCheckedKeys(this.checkedKeys)
+          }
+        })
       },
       immediate: true
     }

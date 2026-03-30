@@ -845,6 +845,15 @@ export default {
           summary: data.summary || '',
           status: data.status || 'DRAFT'
         }
+        // 数据加载后同步 tree 组件的选中状态
+        this.$nextTick(() => {
+          if (this.$refs.authPublishOrgTree) {
+            this.$refs.authPublishOrgTree.setCheckedKeys(this.formData.authPublishOrg || [])
+          }
+          if (this.$refs.applicableRegionTree) {
+            this.$refs.applicableRegionTree.setCheckedKeys(this.formData.applicableRegion || [])
+          }
+        })
       } catch (error) {
         this.$message.error('加载详情失败')
         this.$router.push('/AuthLetterList')
@@ -1036,6 +1045,12 @@ export default {
           rules: this.formatRules(data.rules || []),
           questionnaires: this.formatQuestionnaires(data.questionnaires || [])
         }
+        // 数据加载后同步 tree 组件的选中状态
+        this.$nextTick(() => {
+          if (this.$refs.industryTree) {
+            this.$refs.industryTree.setCheckedKeys(this.sceneFormData.industry || [])
+          }
+        })
       } catch (error) {
         this.$message.error('加载详情失败')
         this.sceneDialogVisible = false

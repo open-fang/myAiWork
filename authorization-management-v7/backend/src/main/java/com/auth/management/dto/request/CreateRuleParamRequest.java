@@ -23,8 +23,7 @@ public class CreateRuleParamRequest implements Serializable {
     @Size(max = 100, message = "English name must not exceed 100 characters")
     private String nameEn;
 
-    @NotBlank(message = "Business objects are required")
-    private String businessObjects;
+    private List<BusinessObjectDTO> businessObjects;
 
     @NotBlank(message = "Status is required")
     private String status;
@@ -33,4 +32,10 @@ public class CreateRuleParamRequest implements Serializable {
     private String dataType;
 
     private Long referenceFieldId;
+
+    @Data
+    public static class BusinessObjectDTO implements Serializable {
+        private String businessObject;
+        private String valueLogic;
+    }
 }
