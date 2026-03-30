@@ -3,8 +3,10 @@ package com.auth.management.dto.request;
 import lombok.Data;
 
 import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.Size;
 import java.io.Serializable;
+import java.util.List;
 
 /**
  * Create Authorization Letter Request
@@ -18,17 +20,17 @@ public class CreateAuthLetterRequest implements Serializable {
     @Size(max = 200, message = "Authorization letter name must not exceed 200 characters")
     private String name;
 
-    @NotBlank(message = "Authorization object level is required")
-    private String authObjectLevel;
+    @NotEmpty(message = "Authorization object level is required")
+    private List<String> authObjectLevel;
 
-    @NotBlank(message = "Applicable region is required")
-    private String applicableRegion;
+    @NotEmpty(message = "Applicable region is required")
+    private List<String> applicableRegion;
 
-    @NotBlank(message = "Authorization publish level is required")
-    private String authPublishLevel;
+    @NotEmpty(message = "Authorization publish level is required")
+    private List<String> authPublishLevel;
 
-    @NotBlank(message = "Authorization publish organization is required")
-    private String authPublishOrg;
+    @NotEmpty(message = "Authorization publish organization is required")
+    private List<String> authPublishOrg;
 
     private Integer publishYear;
 

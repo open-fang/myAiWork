@@ -82,10 +82,10 @@ public class AuthLetterServiceImpl implements AuthLetterService {
 
         AuthLetter authLetter = new AuthLetter();
         authLetter.setName(request.getName());
-        authLetter.setAuthObjectLevel(request.getAuthObjectLevel());
-        authLetter.setApplicableRegion(request.getApplicableRegion());
-        authLetter.setAuthPublishLevel(request.getAuthPublishLevel());
-        authLetter.setAuthPublishOrg(request.getAuthPublishOrg());
+        authLetter.setAuthObjectLevel(toJsonString(request.getAuthObjectLevel()));
+        authLetter.setApplicableRegion(toJsonString(request.getApplicableRegion()));
+        authLetter.setAuthPublishLevel(toJsonString(request.getAuthPublishLevel()));
+        authLetter.setAuthPublishOrg(toJsonString(request.getAuthPublishOrg()));
         authLetter.setPublishYear(request.getPublishYear());
         authLetter.setSummary(request.getSummary());
         authLetter.setStatus(AuthLetterStatus.DRAFT.getCode());
@@ -119,10 +119,10 @@ public class AuthLetterServiceImpl implements AuthLetterService {
         }
 
         authLetter.setName(request.getName());
-        authLetter.setAuthObjectLevel(request.getAuthObjectLevel());
-        authLetter.setApplicableRegion(request.getApplicableRegion());
-        authLetter.setAuthPublishLevel(request.getAuthPublishLevel());
-        authLetter.setAuthPublishOrg(request.getAuthPublishOrg());
+        authLetter.setAuthObjectLevel(toJsonString(request.getAuthObjectLevel()));
+        authLetter.setApplicableRegion(toJsonString(request.getApplicableRegion()));
+        authLetter.setAuthPublishLevel(toJsonString(request.getAuthPublishLevel()));
+        authLetter.setAuthPublishOrg(toJsonString(request.getAuthPublishOrg()));
         authLetter.setPublishYear(request.getPublishYear());
         authLetter.setSummary(request.getSummary());
 
@@ -130,6 +130,17 @@ public class AuthLetterServiceImpl implements AuthLetterService {
 
         // Log operation
         logOperation(id, OperationType.UPDATE, "system", "System");
+    }
+
+    private String toJsonString(List<String> list) {
+        if (list == null || list.isEmpty()) {
+            return "[]";
+        }
+        try {
+            return objectMapper.writeValueAsString(list);
+        } catch (Exception e) {
+            return "[]";
+        }
     }
 
     @Override

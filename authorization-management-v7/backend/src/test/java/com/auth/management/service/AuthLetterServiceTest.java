@@ -37,10 +37,10 @@ class AuthLetterServiceTest {
         // Given: Complete request data
         CreateAuthLetterRequest request = new CreateAuthLetterRequest();
         request.setName("Test Authorization Letter " + System.currentTimeMillis());
-        request.setAuthObjectLevel("[\"LEVEL1\", \"LEVEL2\"]");
-        request.setApplicableRegion("[\"1\", \"1-1\"]");
-        request.setAuthPublishLevel("[\"LEVEL1\"]");
-        request.setAuthPublishOrg("[\"1\"]");
+        request.setAuthObjectLevel(Arrays.asList("LEVEL1", "LEVEL2"));
+        request.setApplicableRegion(Arrays.asList("1", "1-1"));
+        request.setAuthPublishLevel(Arrays.asList("LEVEL1"));
+        request.setAuthPublishOrg(Arrays.asList("1"));
         request.setPublishYear(2024);
         request.setSummary("Test summary for authorization letter");
 
@@ -82,10 +82,10 @@ class AuthLetterServiceTest {
         // First create one
         CreateAuthLetterRequest request = new CreateAuthLetterRequest();
         request.setName("Detail Test Letter " + System.currentTimeMillis());
-        request.setAuthObjectLevel("[\"LEVEL1\"]");
-        request.setApplicableRegion("[\"1\"]");
-        request.setAuthPublishLevel("[\"LEVEL1\"]");
-        request.setAuthPublishOrg("[\"1\"]");
+        request.setAuthObjectLevel(Arrays.asList("LEVEL1"));
+        request.setApplicableRegion(Arrays.asList("1"));
+        request.setAuthPublishLevel(Arrays.asList("LEVEL1"));
+        request.setAuthPublishOrg(Arrays.asList("1"));
         request.setPublishYear(2024);
         request.setSummary("Test summary");
         Long id = authLetterService.create(request);
@@ -120,10 +120,10 @@ class AuthLetterServiceTest {
         String name = "Duplicate Test " + System.currentTimeMillis();
         CreateAuthLetterRequest request1 = new CreateAuthLetterRequest();
         request1.setName(name);
-        request1.setAuthObjectLevel("[\"LEVEL1\"]");
-        request1.setApplicableRegion("[\"1\"]");
-        request1.setAuthPublishLevel("[\"LEVEL1\"]");
-        request1.setAuthPublishOrg("[\"1\"]");
+        request1.setAuthObjectLevel(Arrays.asList("LEVEL1"));
+        request1.setApplicableRegion(Arrays.asList("1"));
+        request1.setAuthPublishLevel(Arrays.asList("LEVEL1"));
+        request1.setAuthPublishOrg(Arrays.asList("1"));
         request1.setPublishYear(2024);
         request1.setSummary("First letter");
         authLetterService.create(request1);
@@ -131,10 +131,10 @@ class AuthLetterServiceTest {
         // When: Try to create with same name
         CreateAuthLetterRequest request2 = new CreateAuthLetterRequest();
         request2.setName(name);
-        request2.setAuthObjectLevel("[\"LEVEL1\"]");
-        request2.setApplicableRegion("[\"1\"]");
-        request2.setAuthPublishLevel("[\"LEVEL1\"]");
-        request2.setAuthPublishOrg("[\"1\"]");
+        request2.setAuthObjectLevel(Arrays.asList("LEVEL1"));
+        request2.setApplicableRegion(Arrays.asList("1"));
+        request2.setAuthPublishLevel(Arrays.asList("LEVEL1"));
+        request2.setAuthPublishOrg(Arrays.asList("1"));
         request2.setPublishYear(2024);
         request2.setSummary("Second letter");
 
@@ -151,10 +151,10 @@ class AuthLetterServiceTest {
         // Given: Create a draft letter
         CreateAuthLetterRequest createRequest = new CreateAuthLetterRequest();
         createRequest.setName("Update Test " + System.currentTimeMillis());
-        createRequest.setAuthObjectLevel("[\"LEVEL1\"]");
-        createRequest.setApplicableRegion("[\"1\"]");
-        createRequest.setAuthPublishLevel("[\"LEVEL1\"]");
-        createRequest.setAuthPublishOrg("[\"1\"]");
+        createRequest.setAuthObjectLevel(Arrays.asList("LEVEL1"));
+        createRequest.setApplicableRegion(Arrays.asList("1"));
+        createRequest.setAuthPublishLevel(Arrays.asList("LEVEL1"));
+        createRequest.setAuthPublishOrg(Arrays.asList("1"));
         createRequest.setPublishYear(2024);
         createRequest.setSummary("Original summary");
         Long id = authLetterService.create(createRequest);
@@ -162,10 +162,10 @@ class AuthLetterServiceTest {
         // When: Update the letter
         CreateAuthLetterRequest updateRequest = new CreateAuthLetterRequest();
         updateRequest.setName("Updated Name " + System.currentTimeMillis());
-        updateRequest.setAuthObjectLevel("[\"LEVEL1\", \"LEVEL2\"]");
-        updateRequest.setApplicableRegion("[\"1\", \"1-1\"]");
-        updateRequest.setAuthPublishLevel("[\"LEVEL1\"]");
-        updateRequest.setAuthPublishOrg("[\"1\"]");
+        updateRequest.setAuthObjectLevel(Arrays.asList("LEVEL1", "LEVEL2"));
+        updateRequest.setApplicableRegion(Arrays.asList("1", "1-1"));
+        updateRequest.setAuthPublishLevel(Arrays.asList("LEVEL1"));
+        updateRequest.setAuthPublishOrg(Arrays.asList("1"));
         updateRequest.setPublishYear(2025);
         updateRequest.setSummary("Updated summary");
 
@@ -184,10 +184,10 @@ class AuthLetterServiceTest {
         // Given: Create a letter
         CreateAuthLetterRequest request = new CreateAuthLetterRequest();
         request.setName("Delete Test " + System.currentTimeMillis());
-        request.setAuthObjectLevel("[\"LEVEL1\"]");
-        request.setApplicableRegion("[\"1\"]");
-        request.setAuthPublishLevel("[\"LEVEL1\"]");
-        request.setAuthPublishOrg("[\"1\"]");
+        request.setAuthObjectLevel(Arrays.asList("LEVEL1"));
+        request.setApplicableRegion(Arrays.asList("1"));
+        request.setAuthPublishLevel(Arrays.asList("LEVEL1"));
+        request.setAuthPublishOrg(Arrays.asList("1"));
         request.setPublishYear(2024);
         request.setSummary("To be deleted");
         Long id = authLetterService.create(request);
@@ -209,10 +209,10 @@ class AuthLetterServiceTest {
         for (int i = 0; i < 3; i++) {
             CreateAuthLetterRequest request = new CreateAuthLetterRequest();
             request.setName("Batch Test " + System.currentTimeMillis() + "_" + i);
-            request.setAuthObjectLevel("[\"LEVEL1\"]");
-            request.setApplicableRegion("[\"1\"]");
-            request.setAuthPublishLevel("[\"LEVEL1\"]");
-            request.setAuthPublishOrg("[\"1\"]");
+            request.setAuthObjectLevel(Arrays.asList("LEVEL1"));
+            request.setApplicableRegion(Arrays.asList("1"));
+            request.setAuthPublishLevel(Arrays.asList("LEVEL1"));
+            request.setAuthPublishOrg(Arrays.asList("1"));
             request.setPublishYear(2024);
             request.setSummary("Batch test");
             ids[i] = authLetterService.create(request);
@@ -237,10 +237,10 @@ class AuthLetterServiceTest {
         // Given: Create letters with different status
         CreateAuthLetterRequest request = new CreateAuthLetterRequest();
         request.setName("Status Filter Test " + System.currentTimeMillis());
-        request.setAuthObjectLevel("[\"LEVEL1\"]");
-        request.setApplicableRegion("[\"1\"]");
-        request.setAuthPublishLevel("[\"LEVEL1\"]");
-        request.setAuthPublishOrg("[\"1\"]");
+        request.setAuthObjectLevel(Arrays.asList("LEVEL1"));
+        request.setApplicableRegion(Arrays.asList("1"));
+        request.setAuthPublishLevel(Arrays.asList("LEVEL1"));
+        request.setAuthPublishOrg(Arrays.asList("1"));
         request.setPublishYear(2024);
         request.setSummary("Status filter test");
         authLetterService.create(request);
@@ -263,10 +263,10 @@ class AuthLetterServiceTest {
         String uniqueName = "Name Filter Test " + System.currentTimeMillis();
         CreateAuthLetterRequest request = new CreateAuthLetterRequest();
         request.setName(uniqueName);
-        request.setAuthObjectLevel("[\"LEVEL1\"]");
-        request.setApplicableRegion("[\"1\"]");
-        request.setAuthPublishLevel("[\"LEVEL1\"]");
-        request.setAuthPublishOrg("[\"1\"]");
+        request.setAuthObjectLevel(Arrays.asList("LEVEL1"));
+        request.setApplicableRegion(Arrays.asList("1"));
+        request.setAuthPublishLevel(Arrays.asList("LEVEL1"));
+        request.setAuthPublishOrg(Arrays.asList("1"));
         request.setPublishYear(2024);
         request.setSummary("Name filter test");
         authLetterService.create(request);

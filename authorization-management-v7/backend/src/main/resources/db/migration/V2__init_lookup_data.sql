@@ -2,7 +2,7 @@
 -- Authorization Management System V7 - Lookup Data Initialization
 
 -- 1. Lookup Types
-INSERT INTO lookup_typess (type_code, type_name, description) VALUES
+INSERT INTO lookup_types (type_code, type_name, description) VALUES
 ('AUTH_OBJECT_LEVEL', 'Authorization Object Level', 'Authorization object level list'),
 ('AUTH_PUBLISH_LEVEL', 'Authorization Publish Level', 'Authorization publish level list'),
 ('APPLICABLE_REGION', 'Applicable Region', 'Applicable region tree list'),
