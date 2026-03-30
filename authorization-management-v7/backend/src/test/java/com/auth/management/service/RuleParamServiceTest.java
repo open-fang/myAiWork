@@ -12,6 +12,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -29,6 +30,15 @@ class RuleParamServiceTest {
     @Autowired
     private RuleParamService ruleParamService;
 
+    private List<CreateRuleParamRequest.BusinessObjectDTO> createBusinessObjects(String businessObject, String valueLogic) {
+        List<CreateRuleParamRequest.BusinessObjectDTO> list = new ArrayList<>();
+        CreateRuleParamRequest.BusinessObjectDTO dto = new CreateRuleParamRequest.BusinessObjectDTO();
+        dto.setBusinessObject(businessObject);
+        dto.setValueLogic(valueLogic);
+        list.add(dto);
+        return list;
+    }
+
     @Test
     @Order(1)
     @Transactional
@@ -37,7 +47,7 @@ class RuleParamServiceTest {
         CreateRuleParamRequest request = new CreateRuleParamRequest();
         request.setName("Test Amount");
         request.setNameEn("test_amount_" + System.currentTimeMillis());
-        request.setBusinessObjects("[{\"businessObject\":\"Order\",\"valueLogic\":\"$.order.amount\"}]");
+        request.setBusinessObjects(createBusinessObjects("Order", "$.order.amount"));
         request.setStatus("ACTIVE");
         request.setDataType("NUMBER");
 
@@ -85,7 +95,7 @@ class RuleParamServiceTest {
         CreateRuleParamRequest request = new CreateRuleParamRequest();
         request.setName("Status Update Test");
         request.setNameEn("status_update_" + System.currentTimeMillis());
-        request.setBusinessObjects("[]");
+        request.setBusinessObjects(new ArrayList<>());
         request.setStatus("ACTIVE");
         request.setDataType("TEXT");
         Long id = ruleParamService.create(request);
@@ -110,7 +120,7 @@ class RuleParamServiceTest {
         CreateRuleParamRequest request1 = new CreateRuleParamRequest();
         request1.setName(name);
         request1.setNameEn("dup_test_" + System.currentTimeMillis());
-        request1.setBusinessObjects("[]");
+        request1.setBusinessObjects(new ArrayList<>());
         request1.setStatus("ACTIVE");
         request1.setDataType("TEXT");
         ruleParamService.create(request1);
@@ -119,7 +129,7 @@ class RuleParamServiceTest {
         CreateRuleParamRequest request2 = new CreateRuleParamRequest();
         request2.setName(name);
         request2.setNameEn("dup_test_2_" + System.currentTimeMillis());
-        request2.setBusinessObjects("[]");
+        request2.setBusinessObjects(new ArrayList<>());
         request2.setStatus("ACTIVE");
         request2.setDataType("TEXT");
 
@@ -137,7 +147,7 @@ class RuleParamServiceTest {
         CreateRuleParamRequest request = new CreateRuleParamRequest();
         request.setName(uniqueName);
         request.setNameEn("filter_test_" + System.currentTimeMillis());
-        request.setBusinessObjects("[]");
+        request.setBusinessObjects(new ArrayList<>());
         request.setStatus("ACTIVE");
         request.setDataType("TEXT");
         ruleParamService.create(request);
@@ -160,7 +170,7 @@ class RuleParamServiceTest {
         CreateRuleParamRequest request = new CreateRuleParamRequest();
         request.setName("Delete Test " + System.currentTimeMillis());
         request.setNameEn("delete_test_" + System.currentTimeMillis());
-        request.setBusinessObjects("[]");
+        request.setBusinessObjects(new ArrayList<>());
         request.setStatus("ACTIVE");
         request.setDataType("TEXT");
         Long id = ruleParamService.create(request);
