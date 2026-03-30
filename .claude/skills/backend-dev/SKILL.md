@@ -107,6 +107,7 @@ curl http://localhost:8081/api/authLetter/list \
 
 ### 自测完成清单
 
+- [ ] **Java版本兼容性检查（扫描List.of/Set.of/Map.of等）**
 - [ ] 编译通过，无语法错误
 - [ ] 单元测试 100% 通过
 - [ ] 使用 Docker PostgreSQL 测试通过
@@ -122,6 +123,78 @@ curl http://localhost:8081/api/authLetter/list \
 - 数据库：PostgreSQL
 - 框架：Spring Boot + JAX-RS + MyBatis
 - 数据库迁移：Flyway
+
+---
+
+## Java 8 API限制（重要）
+
+### 背景
+
+项目指定使用 **Java 8**，开发环境可能是 Java 11+，这会导致编译时无法发现版本兼容性问题。必须严格遵守以下限制。
+
+### 禁止使用的Java 9+ API
+
+| 禁止使用的API | 引入版本 | Java 8替代方案 | 示例 |
+|--------------|---------|---------------|------|
+| `List.of()` | Java 9 | `Arrays.asList()` | ❌ `List.of("A", "B")` → ✅ `Arrays.asList("A", "B")` |
+| `Set.of()` | Java 9 | `new HashSet<>(Arrays.asList())` | ❌ `Set.of("A", "B")` → ✅ `new HashSet<>(Arrays.asList("A", "B"))` |
+| `Map.of()` | Java 9 | `Collections.singletonMap()` 或手动构建 | ❌ `Map.of("k", "v")` → ✅ `Collections.singletonMap("k", "v")` |
+| `Map.ofEntries()` | Java 9 | 手动构建HashMap | ❌ `Map.ofEntries(entry("k","v"))` → ✅ 手动put |
+| `String.isBlank()` | Java 11 | `str.trim().isEmpty()` | ❌ `s.isBlank()` → ✅ `s.trim().isEmpty()` |
+| `Optional.ifPresentOrElse()` | Java 9 | `if (opt.isPresent()) else` | 手动判断 |
+| `Optional.or()` | Java 9 | `opt.isPresent() ? opt : other` | 手动判断 |
+| `Stream.takeWhile()` | Java 9 | 自定义过滤 | 需自行实现 |
+| `var` 关键字 | Java 10 | 显式类型声明 | ❌ `var list = ...` → ✅ `List<String> list = ...` |
+| `Collection.toArray(IntFunction)` | Java 11 | `list.toArray(new String[0])` | ❌ `list.toArray(String[]::new)` → ✅ `list.toArray(new String[0])` |
+
+### 代码扫描检查
+
+**提交前必须执行以下检查**：
+
+```bash
+# 扫描不兼容的Java 9+ API
+grep -rn "List\.of\|Set\.of\|Map\.of\|\.isBlank()\|var " \
+    --include="*.java" \
+    --exclude-dir=target \
+    src/main/java
+
+# 如果有输出，必须修复后才能提交
+```
+
+### 推荐的IDE配置
+
+在IDE中设置：
+1. **Project SDK**: Java 8
+2. **Language Level**: 8 - Lambdas, type annotations etc.
+3. **Maven Import**: 使用pom.xml中的java.version
+
+### 自测时的版本验证
+
+```bash
+# 编译时指定目标版本
+mvn clean compile -Dmaven.compiler.source=1.8 -Dmaven.compiler.target=1.8
+
+# 检查编译后的class文件版本（应为52.0 = Java 8）
+javap -verbose target/classes/com/xxx/Xxx.class | grep "major version"
+```
+
+### 常见错误案例
+
+```java
+// ❌ 错误：Java 9+ API
+private static final List<String> TYPES = List.of("A", "B", "C");
+
+// ✅ 正确：Java 8兼容
+private static final List<String> TYPES = Arrays.asList("A", "B", "C");
+
+// ❌ 错误：var关键字（Java 10+）
+var result = service.getData();
+
+// ✅ 正确：显式类型
+List<Data> result = service.getData();
+```
+
+---
 
 ## 编码要求与规范
 
