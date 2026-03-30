@@ -3,7 +3,7 @@ package com.auth.management.dto.request;
 import lombok.Data;
 
 import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
+import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.Size;
 import java.io.Serializable;
 import java.util.List;
@@ -20,8 +20,8 @@ public class CreateSceneRequest implements Serializable {
     @Size(max = 200, message = "Scene name must not exceed 200 characters")
     private String sceneName;
 
-    @NotBlank(message = "Industry is required")
-    private String industry;
+    @NotEmpty(message = "Industry is required")
+    private List<String> industry;
 
     @NotBlank(message = "Business scene is required")
     private String businessScene;

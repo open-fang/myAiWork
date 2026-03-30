@@ -84,7 +84,7 @@ public class SceneServiceImpl implements SceneService {
         AuthLetterScene scene = new AuthLetterScene();
         scene.setAuthLetterId(authLetterId);
         scene.setSceneName(request.getSceneName());
-        scene.setIndustry(request.getIndustry());
+        scene.setIndustry(toJsonString(request.getIndustry()));
         scene.setBusinessScene(request.getBusinessScene());
         scene.setDecisionLevel(request.getDecisionLevel());
         scene.setSpecificRule(request.getSpecificRule());
@@ -132,7 +132,7 @@ public class SceneServiceImpl implements SceneService {
 
         // Update scene
         scene.setSceneName(request.getSceneName());
-        scene.setIndustry(request.getIndustry());
+        scene.setIndustry(toJsonString(request.getIndustry()));
         scene.setBusinessScene(request.getBusinessScene());
         scene.setDecisionLevel(request.getDecisionLevel());
         scene.setSpecificRule(request.getSpecificRule());
@@ -213,7 +213,7 @@ public class SceneServiceImpl implements SceneService {
         condition.setCompareValue(conditionDTO.getCompareValue());
         condition.setCompareUnit(conditionDTO.getCompareUnit());
         condition.setLogicType(conditionDTO.getLogicType());
-        condition.setIsGroup(conditionDTO.getIsGroup() ? 1 : 0);
+        condition.setIsGroup(Boolean.TRUE.equals(conditionDTO.getIsGroup()) ? 1 : 0);
         condition.setGroupLogicType(conditionDTO.getGroupLogicType());
         condition.setSortOrder(conditionDTO.getSortOrder());
 
@@ -400,6 +400,17 @@ public class SceneServiceImpl implements SceneService {
             case "LE": return "<=";
             case "NE": return "!=";
             default: return operator;
+        }
+    }
+
+    private String toJsonString(List<String> list) {
+        if (list == null || list.isEmpty()) {
+            return "[]";
+        }
+        try {
+            return objectMapper.writeValueAsString(list);
+        } catch (Exception e) {
+            return "[]";
         }
     }
 }
