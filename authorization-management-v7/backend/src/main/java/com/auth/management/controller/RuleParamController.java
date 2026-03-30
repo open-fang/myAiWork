@@ -78,4 +78,11 @@ public class RuleParamController {
         List<RuleParamOptionResponse> result = ruleParamService.getOptions(status);
         return ApiResponse.success(result);
     }
+
+    @GetMapping("/active")
+    @ApiOperation("Get active rule parameters")
+    public ApiResponse<List<RuleParamOptionResponse>> getActiveParams() {
+        List<RuleParamOptionResponse> result = ruleParamService.getOptions("ACTIVE");
+        return ApiResponse.success(result);
+    }
 }
