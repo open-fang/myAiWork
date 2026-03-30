@@ -494,6 +494,27 @@ echo "=== Teardown 完成 ==="
 | `Stream.takeWhile()` | Java 9 | 自定义过滤 |
 | `var` 关键字 | Java 10 | 显式类型声明 |
 
+### Boolean 类型空值处理检查（重要）
+
+**历史教训**：Boolean字段为null时，三元表达式会抛出NullPointerException。
+
+**问题代码示例**：
+```java
+// ❌ 错误：如果getIsGroup()返回null，会抛出NullPointerException
+condition.setIsGroup(conditionDTO.getIsGroup() ? 1 : 0);
+```
+
+**正确代码示例**：
+```java
+// ✅ 正确：使用Boolean.TRUE.equals()处理null值
+condition.setIsGroup(Boolean.TRUE.equals(conditionDTO.getIsGroup()) ? 1 : 0);
+```
+
+**Boolean空值检查清单**：
+- [ ] 检查所有Boolean三元表达式是否处理null情况
+- [ ] DTO中Boolean字段默认值处理
+- [ ] 使用`Boolean.TRUE.equals()`而非直接判断
+
 ### 兼容性测试方法
 
 #### 方法一：静态代码扫描（推荐）
@@ -595,6 +616,39 @@ fi
 - 覆盖所有 REST API 端点
 - 验证请求参数、响应格式、状态码
 - 测试正常场景和异常场景
+
+#### API HTTP 方法验证（重要）
+
+**历史教训**：API测试时使用了错误的HTTP方法导致测试失败。例如发布接口使用POST方法，但测试使用了PUT方法。
+
+**验证要求**：
+1. 测试前**必须**查看Controller代码确认正确的HTTP方法
+2. 每个API端点的HTTP方法必须与Controller定义一致
+
+**常见HTTP方法错误**：
+| 错误做法 | 正确做法 |
+|----------|----------|
+| `curl -X PUT /api/v1/auth-letters/1/publish` | `curl -X POST /api/v1/auth-letters/1/publish` |
+| 假设所有更新操作都用PUT | 查看Controller的`@PostMapping`/`@PutMapping`注解 |
+
+**验证步骤**：
+```bash
+# 1. 查看Controller定义的HTTP方法
+grep -n "@.*Mapping" src/main/java/com/auth/management/controller/AuthLetterController.java
+
+# 示例输出：
+# @PostMapping("/{id}/publish")  → 使用POST方法
+# @PostMapping("/{id}/invalidate")  → 使用POST方法
+# @PutMapping("/{id}")  → 使用PUT方法
+# @DeleteMapping("/{id}")  → 使用DELETE方法
+```
+
+**API测试清单**：
+- [ ] 确认每个API端点的HTTP方法与Controller定义一致
+- [ ] 发布操作：POST `/api/v1/auth-letters/{id}/publish`
+- [ ] 作废操作：POST `/api/v1/auth-letters/{id}/invalidate`
+- [ ] 更新操作：PUT `/api/v1/auth-letters/{id}`
+- [ ] 删除操作：DELETE `/api/v1/auth-letters/{id}`
 
 ### 3. E2E 自动化测试（重点）
 
