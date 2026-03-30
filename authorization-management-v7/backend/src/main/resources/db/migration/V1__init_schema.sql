@@ -2,7 +2,7 @@
 -- Authorization Management System V7 - Database Schema Initialization
 
 -- 1. Authorization Letter Table
-CREATE TABLE auth_letter (
+CREATE TABLE auth_letters (
     id                  BIGSERIAL PRIMARY KEY,
     name                VARCHAR(200) NOT NULL,
     auth_object_level   JSONB,
@@ -19,14 +19,14 @@ CREATE TABLE auth_letter (
     delete_flag         SMALLINT DEFAULT 0
 );
 
-CREATE UNIQUE INDEX uk_auth_letter_name ON auth_letter (name) WHERE delete_flag = 0;
-CREATE INDEX idx_auth_letter_status ON auth_letter (status) WHERE delete_flag = 0;
-CREATE INDEX idx_auth_letter_year ON auth_letter (publish_year) WHERE delete_flag = 0;
-CREATE INDEX idx_auth_letter_object_level ON auth_letter USING GIN (auth_object_level);
-CREATE INDEX idx_auth_letter_region ON auth_letter USING GIN (applicable_region);
+CREATE UNIQUE INDEX uk_auth_letter_name ON auth_letters (name) WHERE delete_flag = 0;
+CREATE INDEX idx_auth_letter_status ON auth_letters (status) WHERE delete_flag = 0;
+CREATE INDEX idx_auth_letter_year ON auth_letters (publish_year) WHERE delete_flag = 0;
+CREATE INDEX idx_auth_letter_object_level ON auth_letters USING GIN (auth_object_level);
+CREATE INDEX idx_auth_letter_region ON auth_letters USING GIN (applicable_region);
 
 -- 2. Authorization Letter Scene Table
-CREATE TABLE auth_letter_scene (
+CREATE TABLE auth_letter_scenes (
     id                  BIGSERIAL PRIMARY KEY,
     auth_letter_id      BIGINT NOT NULL,
     scene_name          VARCHAR(200) NOT NULL,
@@ -41,12 +41,12 @@ CREATE TABLE auth_letter_scene (
     delete_flag         SMALLINT DEFAULT 0
 );
 
-CREATE INDEX idx_scene_auth_letter_id ON auth_letter_scene (auth_letter_id) WHERE delete_flag = 0;
-CREATE UNIQUE INDEX uk_scene_name ON auth_letter_scene (auth_letter_id, scene_name) WHERE delete_flag = 0;
-CREATE INDEX idx_scene_industry ON auth_letter_scene USING GIN (industry);
+CREATE INDEX idx_scene_auth_letter_id ON auth_letter_scenes (auth_letter_id) WHERE delete_flag = 0;
+CREATE UNIQUE INDEX uk_scene_name ON auth_letter_scenes (auth_letter_id, scene_name) WHERE delete_flag = 0;
+CREATE INDEX idx_scene_industry ON auth_letter_scenes USING GIN (industry);
 
 -- 3. Authorization Letter Rule Table
-CREATE TABLE auth_letter_rule (
+CREATE TABLE auth_letter_rules (
     id                  BIGSERIAL PRIMARY KEY,
     scene_id            BIGINT NOT NULL,
     rule_name           VARCHAR(200),
@@ -58,10 +58,10 @@ CREATE TABLE auth_letter_rule (
     delete_flag         SMALLINT DEFAULT 0
 );
 
-CREATE INDEX idx_rule_scene_id ON auth_letter_rule (scene_id) WHERE delete_flag = 0;
+CREATE INDEX idx_rule_scene_id ON auth_letter_rules (scene_id) WHERE delete_flag = 0;
 
 -- 4. Authorization Letter Rule Condition Table
-CREATE TABLE auth_letter_rule_condition (
+CREATE TABLE auth_letter_rule_conditions (
     id                      BIGSERIAL PRIMARY KEY,
     rule_id                 BIGINT NOT NULL,
     parent_condition_id     BIGINT,
@@ -82,11 +82,11 @@ CREATE TABLE auth_letter_rule_condition (
     delete_flag             SMALLINT DEFAULT 0
 );
 
-CREATE INDEX idx_condition_rule_id ON auth_letter_rule_condition (rule_id) WHERE delete_flag = 0;
-CREATE INDEX idx_condition_parent_id ON auth_letter_rule_condition (parent_condition_id) WHERE delete_flag = 0;
+CREATE INDEX idx_condition_rule_id ON auth_letter_rule_conditions (rule_id) WHERE delete_flag = 0;
+CREATE INDEX idx_condition_parent_id ON auth_letter_rule_conditions (parent_condition_id) WHERE delete_flag = 0;
 
 -- 5. Authorization Letter Attachment Table
-CREATE TABLE auth_letter_attachment (
+CREATE TABLE auth_letter_attachments (
     id                  BIGSERIAL PRIMARY KEY,
     auth_letter_id      BIGINT NOT NULL,
     doc_id              VARCHAR(100) NOT NULL,
@@ -100,10 +100,10 @@ CREATE TABLE auth_letter_attachment (
     delete_flag         SMALLINT DEFAULT 0
 );
 
-CREATE INDEX idx_attachment_auth_letter_id ON auth_letter_attachment (auth_letter_id) WHERE delete_flag = 0;
+CREATE INDEX idx_attachment_auth_letter_id ON auth_letter_attachments (auth_letter_id) WHERE delete_flag = 0;
 
 -- 6. Authorization Letter Log Table
-CREATE TABLE auth_letter_log (
+CREATE TABLE auth_letter_logs (
     id                  BIGSERIAL PRIMARY KEY,
     auth_letter_id      BIGINT NOT NULL,
     operation           VARCHAR(20) NOT NULL,
@@ -112,11 +112,11 @@ CREATE TABLE auth_letter_log (
     operation_time      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_log_auth_letter_id ON auth_letter_log (auth_letter_id);
-CREATE INDEX idx_log_time ON auth_letter_log (operation_time DESC);
+CREATE INDEX idx_log_auth_letter_id ON auth_letter_logs (auth_letter_id);
+CREATE INDEX idx_log_time ON auth_letter_logs (operation_time DESC);
 
 -- 7. Rule Parameter Table
-CREATE TABLE rule_param (
+CREATE TABLE rule_params (
     id                      BIGSERIAL PRIMARY KEY,
     name                    VARCHAR(100) NOT NULL,
     name_en                 VARCHAR(100) NOT NULL,
@@ -131,12 +131,12 @@ CREATE TABLE rule_param (
     delete_flag             SMALLINT DEFAULT 0
 );
 
-CREATE UNIQUE INDEX uk_rule_param_name ON rule_param (name) WHERE delete_flag = 0;
-CREATE UNIQUE INDEX uk_rule_param_name_en ON rule_param (name_en) WHERE delete_flag = 0;
-CREATE INDEX idx_rule_param_status ON rule_param (status) WHERE delete_flag = 0;
+CREATE UNIQUE INDEX uk_rule_param_name ON rule_params (name) WHERE delete_flag = 0;
+CREATE UNIQUE INDEX uk_rule_param_name_en ON rule_params (name_en) WHERE delete_flag = 0;
+CREATE INDEX idx_rule_param_status ON rule_params (status) WHERE delete_flag = 0;
 
 -- 8. Questionnaire Question Table
-CREATE TABLE questionnaire_question (
+CREATE TABLE questionnaire_questions (
     id                  BIGSERIAL PRIMARY KEY,
     question_code       VARCHAR(50) NOT NULL,
     created_by          VARCHAR(100),
@@ -146,10 +146,10 @@ CREATE TABLE questionnaire_question (
     delete_flag         SMALLINT DEFAULT 0
 );
 
-CREATE UNIQUE INDEX uk_question_code ON questionnaire_question (question_code);
+CREATE UNIQUE INDEX uk_question_code ON questionnaire_questions (question_code);
 
 -- 9. Questionnaire Question Text Table
-CREATE TABLE questionnaire_question_text (
+CREATE TABLE questionnaire_question_texts (
     id                  BIGSERIAL PRIMARY KEY,
     question_id         BIGINT NOT NULL,
     question_text       VARCHAR(500) NOT NULL,
@@ -161,11 +161,11 @@ CREATE TABLE questionnaire_question_text (
     delete_flag         SMALLINT DEFAULT 0
 );
 
-CREATE INDEX idx_question_text_question_id ON questionnaire_question_text (question_id) WHERE delete_flag = 0;
-CREATE UNIQUE INDEX uk_question_text_lang ON questionnaire_question_text (question_id, language) WHERE delete_flag = 0;
+CREATE INDEX idx_question_text_question_id ON questionnaire_question_texts (question_id) WHERE delete_flag = 0;
+CREATE UNIQUE INDEX uk_question_text_lang ON questionnaire_question_texts (question_id, language) WHERE delete_flag = 0;
 
 -- 10. Questionnaire Answer Table
-CREATE TABLE questionnaire_answer (
+CREATE TABLE questionnaire_answers (
     id                  BIGSERIAL PRIMARY KEY,
     answer_code         VARCHAR(50) NOT NULL,
     question_id         BIGINT NOT NULL,
@@ -177,11 +177,11 @@ CREATE TABLE questionnaire_answer (
     delete_flag         SMALLINT DEFAULT 0
 );
 
-CREATE UNIQUE INDEX uk_answer_code ON questionnaire_answer (answer_code);
-CREATE INDEX idx_answer_question_id ON questionnaire_answer (question_id) WHERE delete_flag = 0;
+CREATE UNIQUE INDEX uk_answer_code ON questionnaire_answers (answer_code);
+CREATE INDEX idx_answer_question_id ON questionnaire_answers (question_id) WHERE delete_flag = 0;
 
 -- 11. Questionnaire Answer Text Table
-CREATE TABLE questionnaire_answer_text (
+CREATE TABLE questionnaire_answer_texts (
     id                  BIGSERIAL PRIMARY KEY,
     answer_id           BIGINT NOT NULL,
     answer_text         VARCHAR(200) NOT NULL,
@@ -193,11 +193,11 @@ CREATE TABLE questionnaire_answer_text (
     delete_flag         SMALLINT DEFAULT 0
 );
 
-CREATE INDEX idx_answer_text_answer_id ON questionnaire_answer_text (answer_id) WHERE delete_flag = 0;
-CREATE UNIQUE INDEX uk_answer_text_lang ON questionnaire_answer_text (answer_id, language) WHERE delete_flag = 0;
+CREATE INDEX idx_answer_text_answer_id ON questionnaire_answer_texts (answer_id) WHERE delete_flag = 0;
+CREATE UNIQUE INDEX uk_answer_text_lang ON questionnaire_answer_texts (answer_id, language) WHERE delete_flag = 0;
 
 -- 12. Scene Questionnaire Relation Table
-CREATE TABLE scene_questionnaire (
+CREATE TABLE scene_questionnaires (
     id                  BIGSERIAL PRIMARY KEY,
     scene_id            BIGINT NOT NULL,
     question_id         BIGINT NOT NULL,
@@ -210,11 +210,11 @@ CREATE TABLE scene_questionnaire (
     delete_flag         SMALLINT DEFAULT 0
 );
 
-CREATE INDEX idx_scene_q_scene_id ON scene_questionnaire (scene_id) WHERE delete_flag = 0;
-CREATE INDEX idx_scene_q_question_id ON scene_questionnaire (question_id) WHERE delete_flag = 0;
+CREATE INDEX idx_scene_q_scene_id ON scene_questionnaires (scene_id) WHERE delete_flag = 0;
+CREATE INDEX idx_scene_q_question_id ON scene_questionnaires (question_id) WHERE delete_flag = 0;
 
 -- 13. Lookup Type Table
-CREATE TABLE lookup_type (
+CREATE TABLE lookup_types (
     id                  BIGSERIAL PRIMARY KEY,
     type_code           VARCHAR(50) NOT NULL,
     type_name           VARCHAR(100) NOT NULL,
@@ -226,10 +226,10 @@ CREATE TABLE lookup_type (
     delete_flag         SMALLINT DEFAULT 0
 );
 
-CREATE UNIQUE INDEX uk_lookup_type_code ON lookup_type (type_code) WHERE delete_flag = 0;
+CREATE UNIQUE INDEX uk_lookup_type_code ON lookup_types (type_code) WHERE delete_flag = 0;
 
 -- 14. Lookup Value Table
-CREATE TABLE lookup_value (
+CREATE TABLE lookup_values (
     id                  BIGSERIAL PRIMARY KEY,
     type_id             BIGINT NOT NULL,
     value_code          VARCHAR(50) NOT NULL,
@@ -245,6 +245,6 @@ CREATE TABLE lookup_value (
     delete_flag         SMALLINT DEFAULT 0
 );
 
-CREATE INDEX idx_lookup_value_type_id ON lookup_value (type_id) WHERE delete_flag = 0;
-CREATE INDEX idx_lookup_value_parent_code ON lookup_value (parent_code) WHERE delete_flag = 0;
-CREATE INDEX idx_lookup_value_status ON lookup_value (status) WHERE delete_flag = 0;
+CREATE INDEX idx_lookup_value_type_id ON lookup_values (type_id) WHERE delete_flag = 0;
+CREATE INDEX idx_lookup_value_parent_code ON lookup_values (parent_code) WHERE delete_flag = 0;
+CREATE INDEX idx_lookup_value_status ON lookup_values (status) WHERE delete_flag = 0;
