@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -23,7 +24,7 @@ public class LookupServiceImpl implements LookupService {
     private LookupRepository lookupRepository;
 
     // Tree-structured type codes
-    private static final List<String> TREE_TYPE_CODES = List.of(
+    private static final List<String> TREE_TYPE_CODES = Arrays.asList(
             "APPLICABLE_REGION",
             "AUTH_PUBLISH_ORG",
             "INDUSTRY"
